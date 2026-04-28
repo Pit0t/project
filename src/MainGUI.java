@@ -1,52 +1,305 @@
+import Graphs.State;
+import javafx.animation.FadeTransition;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Button;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 public class MainGUI extends Application {
 
+    private static final String BG_DARK      = "#0d0f14";
+    private static final String BG_PANEL     = "#13161e";
+    private static final String BG_INPUT     = "#1a1e2a";
+    private static final String ACCENT       = "#4f8ef7";
+    private static final String ACCENT_HOVER = "#6aa3ff";
+    private static final String BORDER       = "#2a2f40";
+    private static final String TEXT_PRIMARY = "#e8ecf4";
+    private static final String TEXT_MUTED   = "#5a6180";
+    private static final String SUCCESS      = "#3dd68c";
+    private static final String WARNING      = "#f0a04a";
+
+    private static final int STEP_DELAY_MS = 30;
+
+    private static final double CANVAS_W  = 6000;
+    private static final double CANVAS_H  = 4000;
+    private static final double START_Y   = 60;
+    private static final double X_SPACING = 20;
+    private static final double Y_SPACING = 15;
+    private static final double RADIUS    = 3;
+
+    private Label      statusLabel;
+    private ProgressBar progressBar;
+    private Button     startBtn;
+    private TextField  seedInput;
+    private Canvas     canvas;
+    private ScrollPane scroll;
+
     @Override
     public void start(Stage primaryStage) {
-
-
         BorderPane root = new BorderPane();
+        root.setStyle("-fx-background-color: " + BG_DARK + ";");
+        root.setTop(buildHeader());
+        root.setCenter(buildCenter());
+        root.setBottom(buildStatusBar());
 
-        HBox topPanel = new HBox(15);
-        topPanel.setAlignment(Pos.CENTER);
-        topPanel.setStyle("-fx-padding: 15px; -fx-background-color: #e0e0e0;");
+        Scene scene = new Scene(root, 960, 680);
+        scene.setFill(Color.web(BG_DARK));
 
-        TextField seedInput = new TextField();
-        seedInput.setPromptText("Enter Seed...");
-
-        Button startBtn = new Button("start encryption");
-
-
-        topPanel.getChildren().addAll(seedInput, startBtn);
-        root.setTop(topPanel);
-
-
-        Canvas canvas = new Canvas(4000, 6000);
-        GraphicsContext gc = canvas.getGraphicsContext2D();
-
-        ScrollPane scrollPane = new ScrollPane(canvas);
-        scrollPane.setPannable(true); // מאפשר גרירה עם העכבר
-        root.setCenter(scrollPane);
-
-        // 4. הרמת המסך (Showtime)
-        Scene scene = new Scene(root, 800, 600);
-        primaryStage.setTitle("Pascal-Fibonacci-encryption");
+        primaryStage.setTitle("Pascal · Fibonacci · Encryption");
+        primaryStage.setMinWidth(720);
+        primaryStage.setMinHeight(500);
         primaryStage.setScene(scene);
         primaryStage.show();
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(400), root);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+        fadeIn.play();
     }
 
-    public static void main(String[] args) {
-        launch(args);
+    private VBox buildHeader() {
+        Text icon = new Text("⬡");
+        icon.setStyle("-fx-fill: " + ACCENT + "; -fx-font-size: 22px;");
+
+        Label title = new Label("Pascal–Fibonacci Encryption");
+        title.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 17px; -fx-font-weight: bold; -fx-text-fill: " + TEXT_PRIMARY + ";");
+
+        Label badge = new Label("v1.1");
+        badge.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 10px; -fx-text-fill: " + ACCENT + "; -fx-border-color: " + ACCENT + "; -fx-border-radius: 3; -fx-padding: 1 6 1 6;");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox titleRow = new HBox(12, icon, title, badge, spacer);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
+
+        Label seedLabel = new Label("SEED");
+        seedLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: " + TEXT_MUTED + ";");
+
+        seedInput = new TextField();
+        seedInput.setPromptText("Enter seed value…");
+        seedInput.setPrefWidth(240);
+        seedInput.setPrefHeight(36);
+        seedInput.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 13px; -fx-background-color: " + BG_INPUT + "; -fx-text-fill: " + TEXT_PRIMARY + "; -fx-prompt-text-fill: " + TEXT_MUTED + "; -fx-border-color: " + BORDER + "; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 0 12;");
+
+        startBtn = buildPrimaryButton("▶  Run Encryption", e -> handleEncrypt());
+
+        Button clearBtn = buildGhostButton("Clear", e -> {
+            seedInput.clear();
+            GraphicsContext gc = canvas.getGraphicsContext2D();
+            gc.clearRect(0, 0, CANVAS_W, CANVAS_H);
+            gc.setFill(Color.web(BG_DARK));
+            gc.fillRect(0, 0, CANVAS_W, CANVAS_H);
+            drawGrid(gc);
+            setStatus("Canvas cleared.", TEXT_MUTED);
+        });
+
+        HBox controls = new HBox(10, seedInput, startBtn, clearBtn);
+        controls.setAlignment(Pos.CENTER_LEFT);
+
+        VBox header = new VBox(14, titleRow, new VBox(6, seedLabel, controls));
+        header.setPadding(new Insets(20, 24, 18, 24));
+        header.setStyle("-fx-background-color: " + BG_PANEL + "; -fx-border-color: transparent transparent " + BORDER + " transparent; -fx-border-width: 0 0 1 0;");
+        return header;
     }
+
+    private VBox buildCenter() {
+        canvas = new Canvas(CANVAS_W, CANVAS_H);
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+        gc.setFill(Color.web(BG_DARK));
+        gc.fillRect(0, 0, CANVAS_W, CANVAS_H);
+        drawGrid(gc);
+
+        scroll = new ScrollPane(canvas);
+        scroll.setPannable(true);
+        scroll.setStyle("-fx-background-color: " + BG_DARK + "; -fx-background: " + BG_DARK + ";");
+        VBox.setVgrow(scroll, Priority.ALWAYS);
+
+        VBox center = new VBox(scroll);
+        center.setStyle("-fx-background-color: " + BG_DARK + ";");
+        return center;
+    }
+
+    private HBox buildStatusBar() {
+        statusLabel = new Label("Ready.");
+        statusLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 11px; -fx-text-fill: " + TEXT_MUTED + ";");
+
+        progressBar = new ProgressBar(0);
+        progressBar.setPrefWidth(140);
+        progressBar.setPrefHeight(6);
+        progressBar.setVisible(false);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label coords = new Label("Canvas: " + (int)CANVAS_W + " × " + (int)CANVAS_H + " px");
+        coords.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 11px; -fx-text-fill: " + TEXT_MUTED + ";");
+
+        HBox bar = new HBox(14, statusLabel, progressBar, spacer, coords);
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.setPadding(new Insets(8, 20, 8, 20));
+        bar.setStyle("-fx-background-color: " + BG_PANEL + "; -fx-border-color: " + BORDER + " transparent transparent transparent; -fx-border-width: 1 0 0 0;");
+        return bar;
+    }
+
+    private void drawGrid(GraphicsContext gc) {
+        gc.setStroke(Color.web(BORDER, 0.35));
+        gc.setLineWidth(0.5);
+        for (int x = 0; x < CANVAS_W; x += 80) gc.strokeLine(x, 0, x, CANVAS_H);
+        for (int y = 0; y < CANVAS_H; y += 80) gc.strokeLine(0, y, CANVAS_W, y);
+    }
+
+    private void drawPascalTriangle(GraphicsContext gc, double startX, int maxRow) {
+        gc.setStroke(Color.web(TEXT_MUTED, 0.55));
+        gc.setLineWidth(0.8);
+        for (int row = 0; row < maxRow; row++) {
+            for (int col = 0; col <= row; col++) {
+                double px  = startX + (col     - row       / 2.0) * X_SPACING;
+                double py  = START_Y +  row     * Y_SPACING;
+                double lcx = startX + (col     - (row + 1) / 2.0) * X_SPACING;
+                double lcy = START_Y + (row + 1) * Y_SPACING;
+                double rcx = startX + (col + 1 - (row + 1) / 2.0) * X_SPACING;
+                double rcy = START_Y + (row + 1) * Y_SPACING;
+                gc.strokeLine(px, py, lcx, lcy);
+                gc.strokeLine(px, py, rcx, rcy);
+            }
+        }
+    }
+
+    private Button buildPrimaryButton(String text, javafx.event.EventHandler<javafx.event.ActionEvent> handler) {
+        Button btn = new Button(text);
+        btn.setPrefHeight(36);
+        String base = "-fx-font-family: 'Courier New'; -fx-font-size: 13px; -fx-font-weight: bold; -fx-background-color: " + ACCENT + "; -fx-text-fill: #ffffff; -fx-background-radius: 6; -fx-padding: 0 20; -fx-cursor: hand;";
+        btn.setStyle(base);
+        btn.setOnMouseEntered(e -> btn.setStyle(base.replace(ACCENT, ACCENT_HOVER)));
+        btn.setOnMouseExited(e  -> btn.setStyle(base));
+        btn.setOnAction(handler);
+        return btn;
+    }
+
+    private Button buildGhostButton(String text, javafx.event.EventHandler<javafx.event.ActionEvent> handler) {
+        Button btn = new Button(text);
+        btn.setPrefHeight(36);
+        String base = "-fx-font-family: 'Courier New'; -fx-font-size: 12px; -fx-background-color: transparent; -fx-text-fill: " + TEXT_MUTED + "; -fx-border-color: " + BORDER + "; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 0 16; -fx-cursor: hand;";
+        btn.setStyle(base);
+        btn.setOnMouseEntered(e -> btn.setStyle(base.replace(TEXT_MUTED, TEXT_PRIMARY).replace(BORDER, TEXT_MUTED)));
+        btn.setOnMouseExited(e  -> btn.setStyle(base));
+        btn.setOnAction(handler);
+        return btn;
+    }
+
+    private void handleEncrypt() {
+        String raw = seedInput.getText().trim();
+        if (raw.isEmpty()) {
+            setStatus("⚠  Please enter a seed value.", WARNING);
+            shake(seedInput);
+            return;
+        }
+        long seed;
+        try {
+            seed = Long.parseLong(raw);
+        } catch (NumberFormatException ex) {
+            setStatus("⚠  Invalid seed format.", WARNING);
+            shake(seedInput);
+            return;
+        }
+
+        startBtn.setDisable(true);
+        progressBar.setProgress(0);
+        progressBar.setVisible(true);
+        setStatus("Computing path…", ACCENT);
+
+        State state = new State(seed);
+        for (int i = 0; i < 255; i++) state.nextStep();
+        Graphs.Node[] path = state.pathHistory;
+
+        int maxRow = 0, totalSteps = 0;
+        for (int i = 0; i < 255; i++) {
+            if (path[i] == null || path[i + 1] == null) break;
+            if (path[i + 1].row > maxRow) maxRow = path[i + 1].row;
+            totalSteps++;
+        }
+        final int total = totalSteps;
+        final double startX = CANVAS_W / 2;
+
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+        gc.setFill(Color.web(BG_DARK));
+        gc.fillRect(0, 0, CANVAS_W, CANVAS_H);
+        drawGrid(gc);
+        drawPascalTriangle(gc, startX, maxRow);
+
+        scroll.setHvalue(0.5);
+        scroll.setVvalue(0.0);
+
+        int[] stepHolder = {0};
+        Timeline drawAnim = new Timeline();
+        drawAnim.setCycleCount(total);
+        drawAnim.getKeyFrames().add(new KeyFrame(Duration.millis(STEP_DELAY_MS), e -> {
+            int i = stepHolder[0];
+            double x1 = startX + (path[i].col - path[i].row / 2.0) * X_SPACING;
+            double y1 = START_Y + path[i].row * Y_SPACING;
+            double x2 = startX + (path[i + 1].col - path[i + 1].row / 2.0) * X_SPACING;
+            double y2 = START_Y + path[i + 1].row * Y_SPACING;
+
+            gc.setStroke(Color.web(ACCENT));
+            gc.setLineWidth(2.5);
+            gc.strokeLine(x1, y1, x2, y2);
+            gc.setFill(Color.web(SUCCESS));
+            gc.fillOval(x1 - RADIUS, y1 - RADIUS, RADIUS * 2, RADIUS * 2);
+
+            progressBar.setProgress((double)(i + 1) / total);
+            stepHolder[0]++;
+        }));
+
+        drawAnim.setOnFinished(e -> {
+            // ציור התוצאה הסופית על הקנבס
+            gc.setFill(Color.web(SUCCESS, 0.9));
+            gc.setFont(Font.font("Courier New", FontWeight.BOLD, 14));
+            gc.fillText("Seed: " + seed + "  →  Encryption path rendered.", 30, 38);
+
+            // הוספת ה-Seed המוצפן "בקטן משמאל למטה" (בתוך הקנבס)
+            gc.setFont(Font.font("Courier New", FontWeight.NORMAL, 10));
+            gc.setFill(Color.web(TEXT_MUTED));
+            gc.fillText("the encrypted seed is: " + state.seed, 30, CANVAS_H - 30);
+
+            progressBar.setVisible(false);
+            startBtn.setDisable(false);
+
+            // עדכון שורת הסטטוס למטה עם התוצאה מימין לסטטוס הסופי
+            setStatus("✓ Done — seed " + seed + " | the encrypted seed is: " + state.seed, SUCCESS);
+        });
+
+        drawAnim.play();
+    }
+
+    private void setStatus(String msg, String hex) {
+        statusLabel.setText(msg);
+        statusLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 11px; -fx-text-fill: " + hex + ";");
+    }
+
+    private void shake(TextField field) {
+        double ox = field.getTranslateX();
+        new Timeline(
+                new KeyFrame(Duration.millis(0),   e -> field.setTranslateX(ox)),
+                new KeyFrame(Duration.millis(55),  e -> field.setTranslateX(ox - 7)),
+                new KeyFrame(Duration.millis(110), e -> field.setTranslateX(ox + 7)),
+                new KeyFrame(Duration.millis(165), e -> field.setTranslateX(ox - 5)),
+                new KeyFrame(Duration.millis(220), e -> field.setTranslateX(ox + 5)),
+                new KeyFrame(Duration.millis(275), e -> field.setTranslateX(ox))
+        ).play();
+    }
+
+    public static void main(String[] args) { launch(args); }
 }
