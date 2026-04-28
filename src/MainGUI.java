@@ -33,7 +33,7 @@ public class MainGUI extends Application {
 
 
         Canvas canvas = new Canvas(4000, 6000);
-        GraphicsContext gc = canvas.getGraphicsContext2D(); // נשמור אותו לעתיד כדי לצייר
+        GraphicsContext gc = canvas.getGraphicsContext2D();
 
         ScrollPane scrollPane = new ScrollPane(canvas);
         scrollPane.setPannable(true); // מאפשר גרירה עם העכבר
