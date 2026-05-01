@@ -8,6 +8,9 @@ public class State {
     public long seed;
     public int stepCounter;
     public Node[] pathHistory;
+    public long currentMask;
+    public Node[] remoteHistory;
+
 
     public State(long seed) {
         this.seed = seed;
@@ -18,22 +21,41 @@ public class State {
         currentPascal = pascalGraph.StartPoint();
         pathHistory = new Node[256];
         pathHistory[0] = pascalGraph.StartPoint();
+        this.currentMask = 255L; // 11111111 - bin
+        remoteHistory = new Node[256];
     }
 
     public void nextStep() {
         seed = Hash(seed);
-        int fibChooser = (int)(seed & 1);
+
+        long masked = seed & currentMask;
+        int bitCount = Long.bitCount(masked);
+        int fibChooser = bitCount % 2;
+
         this.currentFib = fibGraph.NextPoint(fibChooser, this.currentFib);
         int fibValue = this.currentFib.data;
 
+        currentMask = Long.rotateLeft(currentMask, 1) ^ fibValue;
+        if (currentMask == 0) currentMask = 255L; // prevent dead state
+
         seed = Hash(seed ^ fibValue);
-        int pascalChooser = (int)(seed & 1);
+
+        long maskedPascal = seed & currentMask;
+        int pascalBitCount = Long.bitCount(maskedPascal);
+        int pascalChooser = pascalBitCount % 2;
 
         this.currentPascal = pascalGraph.NextPoint(pascalChooser, this.currentPascal);
-        int PascalValue = this.currentPascal.data;
-        seed = Hash(seed ^ PascalValue);
+
+        int r = this.currentPascal.row;
+        int c = this.currentPascal.col;
+        long cReadHash = Hash(seed ^ fibValue);
+        int cRead = (int)(cReadHash % (r + 1));
+        int remoteValue = pascalGraph.calculatePascalValue(r, cRead);
+        seed = Hash(seed ^ remoteValue);
+
         this.stepCounter++;
         this.pathHistory[this.stepCounter] = this.currentPascal;
+        this.remoteHistory[this.stepCounter] = new Node(remoteValue, r, cRead);
     }
 
     public long Hash(long seed) {
@@ -81,12 +103,6 @@ public class State {
         seed *= 0xc4ceb9fe1a85ec53L;
         seed ^= seed >>> 33;
 
-        long result = Math.abs(seed);
-
-        if (result < 0) {
-            result = 0;
-        }
-
-        return result;
+        return seed & Long.MAX_VALUE;
     }
 }

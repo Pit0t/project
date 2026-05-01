@@ -16,10 +16,10 @@ public class PascalGraph implements NumberGraph {
 
         if (chooser == 0)
         {
-            return new Node((data * nextRow) / (nextRow - currCol), nextRow, currCol);
+            return new Node((int)(((long)data * nextRow) / (nextRow - currCol)) % 1000000007, nextRow, currCol);
         }
         else
-            return new Node((data * nextRow) / (currCol + 1), nextRow, currCol+1);
+            return new Node((int)(((long)data * nextRow) / (currCol + 1)) % 1000000007, nextRow, currCol+1);
 
     }
 
