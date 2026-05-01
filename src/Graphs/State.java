@@ -30,6 +30,8 @@ public class State {
         int pascalChooser = (int)(seed & 1);
 
         this.currentPascal = pascalGraph.NextPoint(pascalChooser, this.currentPascal);
+        int PascalValue = this.currentPascal.data;
+        seed = Hash(seed ^ PascalValue);
         this.stepCounter++;
         this.pathHistory[this.stepCounter] = this.currentPascal;
     }
@@ -47,7 +49,6 @@ public class State {
         seed = (seed ^ (seed >>> 29)) * PRIME_1;
         seed = (seed ^ (seed >>> 17)) * PRIME_2;
         seed ^= PI_BITS;
-
 
         for (int i = 1; i <= 64; i++) {
 
