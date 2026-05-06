@@ -221,7 +221,7 @@ public class MainGUI extends Application {
 
         ly += 20;
 
-        // Red — remote read string
+        // Red — remote read
         gc.setStroke(Color.web(REMOTE_COLOR));
         gc.setLineWidth(1.2);
         gc.setLineDashes(4, 4);
@@ -289,16 +289,14 @@ public class MainGUI extends Application {
         progressBar.setVisible(true);
         setStatus("Computing path…", ACCENT);
 
-        // Run the algorithm
         State state = new State(seed);
-        for (int i = 0; i < 255; i++) state.nextStep();
+        state.runAll();
 
         Node[] path   = state.pathHistory;
         Node[] remote = state.remoteHistory;
 
-        // Figure out how many valid steps we have
         int maxRow = 0, totalSteps = 0;
-        for (int i = 0; i < 255; i++) {
+        for (int i = 0; i < state.totalSteps; i++) {
             if (path[i] == null || path[i + 1] == null) break;
             if (path[i + 1].row > maxRow) maxRow = path[i + 1].row;
             totalSteps++;
@@ -306,7 +304,6 @@ public class MainGUI extends Application {
         final int    total  = totalSteps;
         final double startX = CANVAS_W / 2.0;
 
-        // Draw background + triangle
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.setFill(Color.web(BG_DARK));
         gc.fillRect(0, 0, CANVAS_W, CANVAS_H);
@@ -316,7 +313,6 @@ public class MainGUI extends Application {
         scroll.setHvalue(0.5);
         scroll.setVvalue(0.0);
 
-        // ── Single timeline — blue + red drawn together each frame ───────────
         int[] stepHolder = {0};
         Timeline drawAnim = new Timeline();
         drawAnim.setCycleCount(total);
@@ -336,7 +332,7 @@ public class MainGUI extends Application {
             gc.setFill(Color.web(SUCCESS));
             gc.fillOval(x1 - RADIUS, y1 - RADIUS, RADIUS * 2, RADIUS * 2);
 
-            // ── Red: remote read — same frame ────────────────────────────────
+            // ── Red: remote read ─────────────────────────────────────────────
             if (remote[i] != null && remote[i + 1] != null) {
                 double rx1 = startX + (remote[i].col     - remote[i].row     / 2.0) * X_SPACING;
                 double ry1 = START_Y +  remote[i].row     * Y_SPACING;
@@ -347,7 +343,6 @@ public class MainGUI extends Application {
                 gc.setLineWidth(1.2);
                 gc.setLineDashes(4, 4);
                 gc.strokeLine(rx1, ry1, rx2, ry2);
-
                 gc.setLineDashes(0);
                 gc.setFill(Color.web(REMOTE_COLOR, 0.8));
                 gc.fillOval(rx1 - 2, ry1 - 2, 4, 4);
@@ -357,7 +352,6 @@ public class MainGUI extends Application {
             stepHolder[0]++;
         }));
 
-        // ── Finished ─────────────────────────────────────────────────────────
         drawAnim.setOnFinished(e -> {
             gc.setFill(Color.web(SUCCESS, 0.9));
             gc.setFont(Font.font("Courier New", FontWeight.BOLD, 14));
