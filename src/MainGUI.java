@@ -301,7 +301,7 @@ public class MainGUI extends Application {
             if (path[i + 1].row > maxRow) maxRow = path[i + 1].row;
             totalSteps++;
         }
-        final int    total  = totalSteps;
+        final int total = totalSteps;
         final double startX = CANVAS_W / 2.0;
 
         GraphicsContext gc = canvas.getGraphicsContext2D();
