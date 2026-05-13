@@ -21,7 +21,6 @@ public class State {
 
         // dynamic step count
         int raw = 200 + (int)(seed % 56);
-        if (raw < 0) raw = 200;
         this.totalSteps = raw;
 
         pathHistory = new Node[totalSteps + 1];
