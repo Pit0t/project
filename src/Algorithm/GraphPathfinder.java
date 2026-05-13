@@ -23,7 +23,8 @@ public class GraphPathfinder {
     }
 
     public List<Node> findPath(Node target, Strategy strategy) {
-        if (strategy == Strategy.DIJKSTRA) return dijkstra(target);
+        if (strategy == Strategy.DIJKSTRA)
+            return dijkstra(target);
         return dfs(target);
     }
 
@@ -32,22 +33,22 @@ public class GraphPathfinder {
     // Cost of each edge = its Fibonacci-based weight
     // -------------------------------------------------------------------
     private List<Node> dijkstra(Node target) {
-        Map<String, Long>     dist    = new HashMap<>();
-        Map<String, Edge>     prev    = new HashMap<>();
-        Set<String>           visited = new HashSet<>();
-        PriorityQueue<long[]> pq      = new PriorityQueue<>(Comparator.comparingLong(a -> a[0]));
+        Map<String, Long> dist = new HashMap<>();
+        Map<String, Edge> prev = new HashMap<>();
+        Set<String> visited = new HashSet<>();
+        PriorityQueue<long[]> pq = new PriorityQueue<>(Comparator.comparingLong(a -> a[0]));
 
-        Node   root    = dag.getRoot();
+        Node root = dag.getRoot();
         String rootKey = nodeKey(root);
 
         dist.put(rootKey, 0L);
         pq.offer(new long[]{ 0L, root.row, root.col });
 
         while (!pq.isEmpty()) {
-            long[] curr     = pq.poll();
-            int    currRow  = (int) curr[1];
-            int    currCol  = (int) curr[2];
-            Node   currNode = dag.getNode(currRow, currCol);
+            long[] curr = pq.poll();
+            int currRow = (int) curr[1];
+            int currCol = (int) curr[2];
+            Node currNode = dag.getNode(currRow, currCol);
             if (currNode == null) continue;
 
             String currKey = nodeKey(currNode);
@@ -78,17 +79,17 @@ public class GraphPathfinder {
     // Ignores edge weights entirely - takes the first path it finds
     // -------------------------------------------------------------------
     private List<Node> dfs(Node target) {
-        Deque<Object[]> stack   = new ArrayDeque<>();
-        Set<String>     visited = new HashSet<>();
+        Deque<Object[]> stack = new ArrayDeque<>();
+        Set<String> visited = new HashSet<>();
 
-        Node       root     = dag.getRoot();
+        Node root = dag.getRoot();
         List<Node> rootPath = new ArrayList<>();
         rootPath.add(root);
         stack.push(new Object[]{ root, rootPath });
 
         while (!stack.isEmpty()) {
-            Object[]   frame    = stack.pop();
-            Node       curr     = (Node) frame[0];
+            Object[] frame = stack.pop();
+            Node curr = (Node) frame[0];
             @SuppressWarnings("unchecked")
             List<Node> currPath = (List<Node>) frame[1];
 

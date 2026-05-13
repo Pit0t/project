@@ -17,8 +17,6 @@ public class Edge {
 
     @Override
     public String toString() {
-        return "(" + source.row + "," + source.col + ")"
-                + " -> (" + target.row + "," + target.col + ")"
-                + " w=" + weight;
+        return "(" + source.row + "," + source.col + ")" + " -> (" + target.row + "," + target.col + ")" + " w=" + weight;
     }
 }

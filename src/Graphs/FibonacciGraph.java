@@ -10,7 +10,7 @@ public class FibonacciGraph implements NumberGraph {
         fibArray[1] = new Node(1,1);
         for (int i = 2; i < size; i++)
         {
-            int nextVal = (fibArray[i-1].data + fibArray[i-2].data) % 1_000_000_007;
+            int nextVal = (fibArray[i-1].data + fibArray[i-2].data) % 1000000007;
             fibArray[i] = new Node(nextVal,i);
         }
     }
@@ -31,7 +31,7 @@ public class FibonacciGraph implements NumberGraph {
         }
         else
         {
-            return  fibArray[(currentIndex+2) % fibArray.length];
+            return fibArray[(currentIndex+2) % fibArray.length];
         }
 
     }
