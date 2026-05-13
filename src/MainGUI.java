@@ -1,4 +1,4 @@
-import Graphs.State;
+import Algorithm.State;
 import Graphs.Node;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;

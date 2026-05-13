@@ -1,9 +1,11 @@
-import Graphs.State;
-import Graphs.Server;
+package ATM;
+
+import Algorithm.GraphPathfinder;
+import Algorithm.State;
+import Graphs.Node;
 import javafx.animation.*;
 import javafx.application.Application;
 import javafx.geometry.*;
-import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.canvas.*;
 import javafx.scene.control.*;
@@ -15,7 +17,6 @@ import javafx.util.Duration;
 
 public class ATM_GUI extends Application {
 
-    // ── Colors ────────────────────────────────────────────────────────────────
     private static final String BG_DARK      = "#0d0f14";
     private static final String BG_PANEL     = "#13161e";
     private static final String BG_INPUT     = "#1a1e2a";
@@ -28,19 +29,16 @@ public class ATM_GUI extends Application {
     private static final String DANGER       = "#ff4444";
     private static final String WARNING      = "#f0a04a";
 
-    // ── Canvas ────────────────────────────────────────────────────────────────
-    private static final double CANVAS_W  = 780;
-    private static final double CANVAS_H  = 440;
-    private static final double START_Y   = 30;
-    private static final double X_SPACING = 12;
-    private static final double Y_SPACING = 10;
-    private static final double RADIUS    = 2.5;
+    private static final double CANVAS_W   = 780;
+    private static final double CANVAS_H   = 440;
+    private static final double START_Y    = 30;
+    private static final double X_SPACING  = 12;
+    private static final double Y_SPACING  = 10;
+    private static final double RADIUS     = 2.5;
     private static final int    STEP_DELAY = 12;
 
-    // ── ATM Constants ─────────────────────────────────────────────────────────
     private static final long ATM_ID = Server.ATM_ID;
 
-    // ── Accounts ──────────────────────────────────────────────────────────────
     static class Account {
         String name; long pin; long balance;
         Account(String n, long p, long b) { name = n; pin = p; balance = b; }
@@ -52,17 +50,14 @@ public class ATM_GUI extends Application {
             new Account("Dana Mizrahi", 9999L,   750L)
     };
 
-    // ── Session state ─────────────────────────────────────────────────────────
     private Account currentAccount = null;
     private String  enteredPin     = "";
     private long    derivedKey     = 0L;
-    private long    sessionId      = 0L;   // increments every card insert
+    private long    sessionId      = 0L;
 
-    // ── Root ──────────────────────────────────────────────────────────────────
     private BorderPane root;
     private final Server server = new Server();
 
-    // ─────────────────────────────────────────────────────────────────────────
     @Override
     public void start(Stage stage) {
         root = new BorderPane();
@@ -82,7 +77,6 @@ public class ATM_GUI extends Application {
         ft.setFromValue(0); ft.setToValue(1); ft.play();
     }
 
-    // ── Header ────────────────────────────────────────────────────────────────
     private HBox buildHeader() {
         Label title = new Label("⬡  PF-GKD Bank");
         title.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: " + ACCENT + ";");
@@ -103,9 +97,7 @@ public class ATM_GUI extends Application {
         return header;
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // SCREEN 1 — Card Selection
-    // ══════════════════════════════════════════════════════════════════════════
+    // ── Card Select ───────────────────────────────────────────────────────────
     private void showCardSelect() {
         currentAccount = null;
         enteredPin     = "";
@@ -158,17 +150,11 @@ public class ATM_GUI extends Application {
         btn.setStyle(base);
         btn.setOnMouseEntered(e -> btn.setStyle(base.replace(BORDER, ACCENT)));
         btn.setOnMouseExited(e  -> btn.setStyle(base));
-        btn.setOnAction(e -> {
-            currentAccount = acc;
-            sessionId++;          // new session every card insert
-            showPinEntry(null);
-        });
+        btn.setOnAction(e -> { currentAccount = acc; sessionId++; showPinEntry(null); });
         return btn;
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // SCREEN 2 — PIN Entry
-    // ══════════════════════════════════════════════════════════════════════════
+    // ── PIN Entry ─────────────────────────────────────────────────────────────
     private void showPinEntry(String errorMsg) {
         enteredPin = "";
 
@@ -177,12 +163,10 @@ public class ATM_GUI extends Application {
         screen.setPadding(new Insets(40));
         screen.setStyle("-fx-background-color: " + BG_DARK + ";");
 
-        Label cardLabel = new Label("Card holder: " + currentAccount.name);
+        Label cardLabel    = new Label("Card holder: " + currentAccount.name);
         cardLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 12px; -fx-text-fill: " + TEXT_MUTED + ";");
-
         Label sessionLabel = new Label("Session #" + sessionId);
         sessionLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 11px; -fx-text-fill: " + TEXT_MUTED + ";");
-
         Label title = new Label("Enter PIN");
         title.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: " + TEXT_PRIMARY + ";");
 
@@ -247,22 +231,20 @@ public class ATM_GUI extends Application {
         if (enteredPin.length() < 4) { showPinEntry("Please enter all 4 digits."); return; }
         long entered = Long.parseLong(enteredPin);
         if (entered == currentAccount.pin) {
-            showLoadingScreen(Server.OP_BALANCE); // default op for loading; key reused per session
+            showLoadingScreen(Server.OP_BALANCE);
         } else {
             showPinEntry("Incorrect PIN. Please try again.");
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // SCREEN 3 — Pascal Loading / Key Derivation
-    // ══════════════════════════════════════════════════════════════════════════
+    // ── Pascal Loading Screen ─────────────────────────────────────────────────
     private void showLoadingScreen(int operationId) {
         VBox screen = new VBox(14);
         screen.setAlignment(Pos.CENTER);
         screen.setPadding(new Insets(20));
         screen.setStyle("-fx-background-color: " + BG_DARK + ";");
 
-        Label status = new Label("Deriving session key…  [ATM_ID=" + ATM_ID + "  SESSION=" + sessionId + "  OP=" + operationId + "]");
+        Label status = new Label("Deriving session key via Dijkstra…  [ATM_ID=" + ATM_ID + "  SESSION=" + sessionId + "]");
         status.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 12px; -fx-text-fill: " + ACCENT + ";");
 
         ProgressBar pb = new ProgressBar(0);
@@ -281,14 +263,15 @@ public class ATM_GUI extends Application {
         screen.getChildren().addAll(status, pb, sp);
         switchScreen(screen);
 
-        // context seed: PIN ^ ATM_ID ^ sessionId ^ operationId
         long contextSeed = currentAccount.pin ^ (ATM_ID * 31L) ^ (sessionId * 17L) ^ ((long)operationId * 7L);
-        State state = new State(contextSeed);
+
+        // run Dijkstra
+        State state = new State(contextSeed, GraphPathfinder.Strategy.DIJKSTRA);
         state.runAll();
         derivedKey = state.seed;
 
-        Graphs.Node[] path   = state.pathHistory;
-        Graphs.Node[] remote = state.remoteHistory;
+        Node[] path   = state.pathHistory;
+        Node[] remote = state.remoteHistory;
 
         int maxRow = 0, cnt = 0;
         for (int i = 0; i < state.totalSteps; i++) {
@@ -335,7 +318,7 @@ public class ATM_GUI extends Application {
         }));
 
         anim.setOnFinished(e -> {
-            status.setText("✓  Session key derived!   Key: " + formatKey(derivedKey));
+            status.setText("✓  Key derived!  [Dijkstra]   Key: " + formatKey(derivedKey));
             status.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 12px; -fx-text-fill: " + SUCCESS + ";");
             new Timeline(new KeyFrame(Duration.millis(900), ev -> showMainMenu())).play();
         });
@@ -343,9 +326,7 @@ public class ATM_GUI extends Application {
         anim.play();
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // SCREEN 4 — Main Menu
-    // ══════════════════════════════════════════════════════════════════════════
+    // ── Main Menu ─────────────────────────────────────────────────────────────
     private void showMainMenu() {
         VBox screen = new VBox(18);
         screen.setAlignment(Pos.CENTER);
@@ -358,7 +339,7 @@ public class ATM_GUI extends Application {
         Label keyLabel = new Label("Session Key:  " + formatKey(derivedKey));
         keyLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 11px; -fx-text-fill: " + TEXT_MUTED + "; -fx-background-color: " + BG_PANEL + "; -fx-padding: 8 14; -fx-background-radius: 6;");
 
-        Label sessionLabel = new Label("Session #" + sessionId + "   |   ATM ID: " + ATM_ID);
+        Label sessionLabel = new Label("Session #" + sessionId + "   |   ATM ID: " + ATM_ID + "   |   Strategy: Dijkstra");
         sessionLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 11px; -fx-text-fill: " + TEXT_MUTED + ";");
 
         Label balTitle = new Label("Current Balance");
@@ -366,8 +347,7 @@ public class ATM_GUI extends Application {
         Label balLabel = new Label("$" + String.format("%,d", currentAccount.balance));
         balLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: " + SUCCESS + ";");
 
-        Separator sep = new Separator();
-        sep.setMaxWidth(380);
+        Separator sep = new Separator(); sep.setMaxWidth(380);
 
         Label menuTitle = new Label("SELECT TRANSACTION");
         menuTitle.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: " + TEXT_MUTED + ";");
@@ -376,7 +356,7 @@ public class ATM_GUI extends Application {
         Button withdrawBtn = buildMenuButton("📤   Withdraw");
         Button depositBtn  = buildMenuButton("📥   Deposit");
 
-        checkBtn.setOnAction(e    -> handleTransaction("BALANCE", 0));
+        checkBtn.setOnAction(e    -> handleTransaction("BALANCE",  0));
         withdrawBtn.setOnAction(e -> showAmountScreen("Withdraw"));
         depositBtn.setOnAction(e  -> showAmountScreen("Deposit"));
 
@@ -389,21 +369,17 @@ public class ATM_GUI extends Application {
         switchScreen(screen);
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // SCREEN 5 — Amount Input
-    // ══════════════════════════════════════════════════════════════════════════
+    // ── Amount Input ──────────────────────────────────────────────────────────
     private void showAmountScreen(String type) {
         VBox screen = new VBox(18);
         screen.setAlignment(Pos.CENTER);
         screen.setPadding(new Insets(50, 80, 50, 80));
         screen.setStyle("-fx-background-color: " + BG_DARK + ";");
 
-        Label title = new Label(type);
+        Label title    = new Label(type);
         title.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: " + TEXT_PRIMARY + ";");
-
         Label balLabel = new Label("Available: $" + String.format("%,d", currentAccount.balance));
         balLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 13px; -fx-text-fill: " + TEXT_MUTED + ";");
-
         Label sub = new Label("Enter amount ($):");
         sub.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 13px; -fx-text-fill: " + TEXT_MUTED + ";");
 
@@ -437,11 +413,9 @@ public class ATM_GUI extends Application {
         switchScreen(screen);
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // TRANSACTION HANDLER — builds message, encrypts, sends to server
-    // ══════════════════════════════════════════════════════════════════════════
+    // ── Transaction Handler ───────────────────────────────────────────────────
     private void handleTransaction(String type, long amount) {
-        int operationId;
+        int    operationId;
         String plainMessage;
 
         switch (type) {
@@ -453,52 +427,43 @@ public class ATM_GUI extends Application {
                 operationId  = Server.OP_WITHDRAW;
                 plainMessage = "WITHDRAW|" + currentAccount.name + "|-$" + amount;
                 break;
-            default: // DEPOSIT
+            default:
                 operationId  = Server.OP_DEPOSIT;
                 plainMessage = "DEPOSIT|" + currentAccount.name + "|+$" + amount;
                 break;
         }
 
-        // re-derive key with operation context
         long contextSeed = currentAccount.pin ^ (ATM_ID * 31L) ^ (sessionId * 17L) ^ ((long)operationId * 7L);
-        State state = new State(contextSeed);
+        State state = new State(contextSeed, GraphPathfinder.Strategy.DIJKSTRA);
         state.runAll();
         derivedKey = state.seed;
 
-        // ATM encrypts message
         String encryptedMessage = encryptMsg(plainMessage, derivedKey);
 
-        // send to server
         Server.ServerResponse resp = server.process(
                 currentAccount.name, encryptedMessage,
                 sessionId, operationId, currentAccount.balance
         );
 
-        // update balance if approved
         if (resp.approved) currentAccount.balance = resp.newBalance;
 
-        // decrypt server response on ATM side
         String decryptedResponse = resp.approved
                 ? server.decryptMsg(resp.encryptedResponse, derivedKey)
                 : resp.encryptedResponse;
 
-        // show result
         String valueColor = resp.approved ? SUCCESS : DANGER;
         String mainValue  = resp.approved ? "✓ APPROVED" : "✗ DECLINED";
 
         switchScreen(buildResultScreen(
                 type, plainMessage, encryptedMessage,
-                resp, decryptedResponse,
-                mainValue, valueColor, derivedKey
+                resp, decryptedResponse, mainValue, valueColor
         ));
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // RESULT SCREEN — full ATM ↔ Server exchange log
-    // ══════════════════════════════════════════════════════════════════════════
+    // ── Result Screen ─────────────────────────────────────────────────────────
     private VBox buildResultScreen(String type, String plain, String encMsg,
                                    Server.ServerResponse resp, String decResp,
-                                   String mainValue, String valueColor, long key) {
+                                   String mainValue, String valueColor) {
         VBox screen = new VBox(14);
         screen.setAlignment(Pos.CENTER);
         screen.setPadding(new Insets(30, 60, 30, 60));
@@ -510,7 +475,6 @@ public class ATM_GUI extends Application {
         Label balLabel = new Label("New Balance: $" + String.format("%,d", currentAccount.balance));
         balLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 15px; -fx-text-fill: " + TEXT_PRIMARY + ";");
 
-        // ── Encryption log ────────────────────────────────────────────────────
         VBox logBox = new VBox(10);
         logBox.setPadding(new Insets(16, 20, 16, 20));
         logBox.setMaxWidth(700);
@@ -519,20 +483,17 @@ public class ATM_GUI extends Application {
         logBox.getChildren().addAll(
                 logTitle("🔐  Transaction Encryption Log"),
                 logSeparator(),
-
-                logRow("ATM", "Session Key",       formatKey(key),  TEXT_MUTED),
-                logRow("ATM", "Plain message",      plain,           TEXT_MUTED),
-                logRow("ATM", "Encrypted  →",       encMsg,          WARNING),
+                logRow("ATM",    "Session Key",       formatKey(derivedKey),            TEXT_MUTED),
+                logRow("ATM",    "Plain message",      plain,                             TEXT_MUTED),
+                logRow("ATM",    "Encrypted  →",       encMsg,                            WARNING),
                 logSeparator(),
-
-                logRow("SERVER", "Derived same key", formatKey(resp.serverDerivedKey),
-                        resp.serverDerivedKey == key ? SUCCESS : DANGER),
-                logRow("SERVER", "Decrypted  ✓",     resp.decryptedMessage, SUCCESS),
-                logRow("SERVER", "Response plain",   decResp,         TEXT_MUTED),
-                logRow("SERVER", "Response enc →",   resp.encryptedResponse, WARNING),
+                logRow("SERVER", "Derived same key",   formatKey(resp.serverDerivedKey),
+                        resp.serverDerivedKey == derivedKey ? SUCCESS : DANGER),
+                logRow("SERVER", "Decrypted  ✓",       resp.decryptedMessage,             SUCCESS),
+                logRow("SERVER", "Response plain",     decResp,                           TEXT_MUTED),
+                logRow("SERVER", "Response enc →",     resp.encryptedResponse,            WARNING),
                 logSeparator(),
-
-                logRow("ATM", "Response dec  ✓",    decResp,         SUCCESS)
+                logRow("ATM",    "Response dec  ✓",    decResp,                           SUCCESS)
         );
 
         ScrollPane logScroll = new ScrollPane(logBox);
@@ -563,8 +524,7 @@ public class ATM_GUI extends Application {
     private HBox logRow(String side, String label, String value, String valueColor) {
         Label sideLabel = new Label("[" + side + "]");
         sideLabel.setMinWidth(80);
-        sideLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: " +
-                (side.equals("SERVER") ? WARNING : ACCENT) + ";");
+        sideLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: " + (side.equals("SERVER") ? WARNING : ACCENT) + ";");
 
         Label keyLabel = new Label(label + ":");
         keyLabel.setMinWidth(140);
@@ -580,9 +540,7 @@ public class ATM_GUI extends Application {
         return row;
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // UTILITIES
-    // ══════════════════════════════════════════════════════════════════════════
+    // ── Utilities ─────────────────────────────────────────────────────────────
     private String encryptMsg(String message, long key) {
         byte[]        keyBytes = Long.toHexString(key).getBytes();
         byte[]        msgBytes = message.getBytes();
@@ -604,7 +562,7 @@ public class ATM_GUI extends Application {
         return sb.toString();
     }
 
-    private void switchScreen(Node screen) {
+    private void switchScreen(javafx.scene.Node screen) {
         FadeTransition ft = new FadeTransition(Duration.millis(180), screen);
         ft.setFromValue(0); ft.setToValue(1); ft.play();
         root.setCenter(screen);

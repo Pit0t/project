@@ -1,0 +1,104 @@
+package Graphs;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+// Lazy DAG representation of Pascal's triangle.
+// Nodes are only created when an algorithm actually visits them,
+// so we never build the whole triangle upfront (that would be ~33k nodes).
+// Edge weights are pulled from the Fibonacci graph dynamically.
+public class PascalDAG {
+
+    public static final int MAX_ROW = 256;
+
+    // cache of already-created nodes, keyed by "row_col"
+    private final Map<String, Node> nodeCache = new HashMap<>();
+
+    private final FibonacciGraph fibGraph;
+    private Node currentFibNode;
+
+    public PascalDAG(FibonacciGraph fibGraph) {
+        this.fibGraph       = fibGraph;
+        this.currentFibNode = fibGraph.StartPoint();
+
+        // root is always there
+        nodeCache.put(key(0, 0), new Node(1, 0, 0));
+    }
+
+    // returns an existing node or creates one on the spot
+    public Node getNode(int row, int col) {
+        if (col < 0 || col > row || row >= MAX_ROW) return null;
+
+        String k = key(row, col);
+        if (nodeCache.containsKey(k)) return nodeCache.get(k);
+
+        Node node = new Node(computePascalValue(row, col), row, col);
+        nodeCache.put(k, node);
+        return node;
+    }
+
+    // returns the two children of a node as edges with Fibonacci-based weights
+    public List<Edge> getNeighbors(Node node) {
+        List<Edge> edges = new ArrayList<>();
+        int nextRow = node.row + 1;
+        if (nextRow >= MAX_ROW) return edges;
+
+        Node left  = getNode(nextRow, node.col);
+        Node right = getNode(nextRow, node.col + 1);
+
+        long wLeft  = nextFibWeight();
+        long wRight = nextFibWeight();
+
+        if (left  != null) edges.add(new Edge(node, left,  wLeft));
+        if (right != null) edges.add(new Edge(node, right, wRight));
+
+        return edges;
+    }
+
+    // hashes the seed first so similar seeds land at very different targets
+    public Node getTargetNode(long seed, int targetRow) {
+        long hashed = quickHash(seed);
+        int  col    = (int)(Math.abs(hashed) % (targetRow + 1));
+        return getNode(targetRow, col);
+    }
+
+    public Node getRoot() {
+        return nodeCache.get(key(0, 0));
+    }
+
+    public int getCacheSize() {
+        return nodeCache.size();
+    }
+
+    // C(n, k) computed iteratively, kept bounded with mod
+    public int computePascalValue(int n, int k) {
+        if (k == 0 || k == n) return 1;
+        if (k < 0  || k > n)  return 0;
+        if (k > n / 2) k = n - k;
+
+        long result = 1;
+        for (int i = 1; i <= k; i++) {
+            result = result * (n - i + 1) / i;
+            result = result % 1_000_000_007;
+        }
+        return (int) result;
+    }
+
+    private long nextFibWeight() {
+        currentFibNode = fibGraph.NextPoint(0, currentFibNode);
+        return currentFibNode.data;
+    }
+
+    private String key(int row, int col) {
+        return row + "_" + col;
+    }
+
+    private long quickHash(long x) {
+        x = (x ^ (x >>> 33)) * 0xff51afd7ed558ccdL;
+        x = (x ^ (x >>> 33)) * 0xc4ceb9fe1a85ec53L;
+        x ^= (x >>> 33);
+        return x & Long.MAX_VALUE;
+    }
+}
