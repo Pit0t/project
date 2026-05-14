@@ -8,6 +8,7 @@ public class Node
     public int col;
     public Node pathZero;
     public Node pathOne;
+    public boolean isWormhole = false;
 
 
     public Node()

@@ -20,11 +20,12 @@ public class PascalDAG {
     private final FibonacciGraph fibGraph;
     private Node currentFibNode;
 
-    public PascalDAG(FibonacciGraph fibGraph) {
-        this.fibGraph = fibGraph;
-        this.currentFibNode = fibGraph.StartPoint();
+    private long seed;
 
-        // root is always there
+    public PascalDAG(FibonacciGraph fibGraph, long seed) {
+        this.fibGraph = fibGraph;
+        this.seed = seed;
+        this.currentFibNode = fibGraph.StartPoint();
         nodeCache.put(key(0, 0), new Node(1, 0, 0));
     }
 
@@ -38,6 +39,10 @@ public class PascalDAG {
             return nodeCache.get(k);
 
         Node node = new Node(computePascalValue(row, col), row, col);
+        long wormholeCheck = Hash.Hash(seed ^ (long)row ^ (long)col);
+        if (Math.abs(wormholeCheck) % 100 < 10) {
+            node.isWormhole = true;
+        }
         nodeCache.put(k, node);
         return node;
     }
@@ -46,20 +51,25 @@ public class PascalDAG {
     public List<Edge> getNeighbors(Node node) {
         List<Edge> edges = new ArrayList<>();
         int nextRow = node.row + 1;
-        if (nextRow >= MAX_ROW)
+        if (nextRow >= MAX_ROW) return edges;
+
+        if (node.isWormhole) {
+            long jumpHash = Hash.Hash(seed ^ node.row ^ node.col);
+            int jumpRow = (int)(Math.abs(jumpHash) % (node.row + 1)); // 0 to current row (never forward)
+            int jumpCol = (int)(Math.abs(Hash.Hash(jumpHash)) % (jumpRow + 1));
+            Node jumpTarget = getNode(jumpRow, jumpCol);
+            if (jumpTarget != null) {
+                edges.add(new Edge(node, jumpTarget, nextFibWeight()));
+            }
             return edges;
+        }
 
         Node left = getNode(nextRow, node.col);
         Node right = getNode(nextRow, node.col + 1);
-
         long wLeft = nextFibWeight();
         long wRight = nextFibWeight();
-
-        if (left != null)
-            edges.add(new Edge(node, left, wLeft));
-        if (right != null)
-            edges.add(new Edge(node, right, wRight));
-
+        if (left != null) edges.add(new Edge(node, left, wLeft));
+        if (right != null) edges.add(new Edge(node, right, wRight));
         return edges;
     }
 

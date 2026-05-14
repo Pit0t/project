@@ -42,8 +42,8 @@ public class State {
         this.strategy = strategy;
         stepCounter = 0;
 
-        fibGraph = new FibonacciGraph(1000);
-        pascalDAG = new PascalDAG(fibGraph);
+        fibGraph = new FibonacciGraph(256);
+        pascalDAG = new PascalDAG(fibGraph, seed);
         pathfinder = new GraphPathfinder(pascalDAG);
         currentFib = fibGraph.StartPoint();
 
