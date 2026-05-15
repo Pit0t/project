@@ -53,23 +53,24 @@ public class PascalDAG {
         int nextRow = node.row + 1;
         if (nextRow >= MAX_ROW) return edges;
 
+        // always add normal children
+        Node left  = getNode(nextRow, node.col);
+        Node right = getNode(nextRow, node.col + 1);
+        long wLeft  = Math.abs(Hash.Hash(seed ^ nextRow ^ node.col)) % 1_000_000_007;
+        long wRight = Math.abs(Hash.Hash(seed ^ nextRow ^ (node.col + 1))) % 1_000_000_007;
+        if (left  != null) edges.add(new Edge(node, left,  wLeft));
+        if (right != null) edges.add(new Edge(node, right, wRight));
+
+        // wormhole adds an EXTRA backwards jump edge (doesn't replace children)
         if (node.isWormhole) {
             long jumpHash = Hash.Hash(seed ^ node.row ^ node.col);
-            int jumpRow = (int)(Math.abs(jumpHash) % (node.row + 1)); // 0 to current row (never forward)
+            int jumpRow = (int)(Math.abs(jumpHash) % (node.row + 1));
             int jumpCol = (int)(Math.abs(Hash.Hash(jumpHash)) % (jumpRow + 1));
             Node jumpTarget = getNode(jumpRow, jumpCol);
-            if (jumpTarget != null) {
+            if (jumpTarget != null)
                 edges.add(new Edge(node, jumpTarget, nextFibWeight()));
-            }
-            return edges;
         }
 
-        Node left = getNode(nextRow, node.col);
-        Node right = getNode(nextRow, node.col + 1);
-        long wLeft = nextFibWeight();
-        long wRight = nextFibWeight();
-        if (left != null) edges.add(new Edge(node, left, wLeft));
-        if (right != null) edges.add(new Edge(node, right, wRight));
         return edges;
     }
 

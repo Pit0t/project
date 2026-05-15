@@ -11,7 +11,6 @@ public class Test {
         System.out.println("  PF-GKD Key Derivation Test");
         System.out.println("========================================");
         System.out.println("Seed: " + seed);
-        System.out.println("Target row: 50");
         System.out.println();
 
         // ── Run 1: Dijkstra ───────────────────────────────────────────────────
@@ -85,5 +84,31 @@ public class Test {
         System.out.println("Nodes created in DAG (Dijkstra): " + dijkstra.pascalDAG.getCacheSize());
         System.out.println("Nodes created in DAG (DFS):      " + dfs.pascalDAG.getCacheSize());
         System.out.println("========================================");
+
+
+
+        System.out.println("--- WORMHOLE CHECK ---");
+        int wormholeCount = 0;
+        for (int i = 0; i <= dijkstra.totalSteps; i++) {
+            if (dijkstra.pathHistory[i] != null && dijkstra.pathHistory[i].isWormhole) {
+                wormholeCount++;
+                Graphs.Node n = dijkstra.pathHistory[i];
+                System.out.println("  Wormhole at step " + i + ": row=" + n.row + " col=" + n.col);
+            }
+        }
+        System.out.println("Total wormholes on path: " + wormholeCount);
+        System.out.println("Total nodes in DAG: " + dijkstra.pascalDAG.getCacheSize());
+
+
+        System.out.println("--- WORMHOLE CHECK (DFS) ---");
+        wormholeCount = 0;
+        for (int i = 0; i <= dfs.totalSteps; i++) {
+            if (dfs.pathHistory[i] != null && dfs.pathHistory[i].isWormhole) {
+                wormholeCount++;
+                Graphs.Node n = dfs.pathHistory[i];
+                System.out.println("  Wormhole at step " + i + ": row=" + n.row + " col=" + n.col);
+            }
+        }
+        System.out.println("Total wormholes on DFS path: " + wormholeCount);
     }
 }

@@ -27,6 +27,8 @@ public class GraphPathfinder {
 
     private final PascalDAG dag;
 
+    private static final long ZIGZAG_PENALTY = 450_000_000L;
+
     public GraphPathfinder(PascalDAG dag) {
         this.dag = dag;
     }
@@ -49,7 +51,8 @@ public class GraphPathfinder {
 
         Node root = dag.getRoot();
         dist.put(nodeKey(root), 0L);
-        pq.offer(new long[]{0L, root.row, root.col});
+        pq.offer(new long[]{0L, root.row, root.col, -1L});
+        // -1 means no previous direction yet
 
         List<Node> result = new ArrayList<>();
         while (!pq.isEmpty() && result.isEmpty()) {
@@ -65,6 +68,7 @@ public class GraphPathfinder {
     {
         int currRow = (int) curr[1];
         int currCol = (int) curr[2];
+        int prevCol = (int) curr[3];
         Node currNode = dag.getNode(currRow, currCol);
 
         if (currNode == null) return new ArrayList<>();
@@ -77,11 +81,11 @@ public class GraphPathfinder {
         if (currRow == target.row && currCol == target.col)
             return reconstructPath(prev, target);
 
-        relaxEdges(currNode, curr[0], dist, prev, visited, pq);
+        relaxEdges(currNode, curr[0], prevCol, dist, prev, visited, pq);
         return new ArrayList<>();
     }
 
-    private void relaxEdges(Node currNode, long currCost,
+    private void relaxEdges(Node currNode, long currCost, int prevCol,
                             Map<String, Long> dist,
                             Map<String, Edge> prev,
                             Set<String> visited,
@@ -89,11 +93,16 @@ public class GraphPathfinder {
         for (Edge edge : dag.getNeighbors(currNode)) {
             String nKey = nodeKey(edge.target);
             if (!visited.contains(nKey)) {
-                long newCost = currCost + edge.weight;
+                boolean sameDirection = (prevCol != -1) &&
+                        ((edge.target.col == currNode.col && prevCol == currNode.col) ||
+                                (edge.target.col == currNode.col + 1 && prevCol == currNode.col - 1));
+
+                long penalty = sameDirection ? ZIGZAG_PENALTY : 0L;
+                long newCost = currCost + edge.weight + penalty;
                 if (newCost < dist.getOrDefault(nKey, Long.MAX_VALUE)) {
                     dist.put(nKey, newCost);
                     prev.put(nKey, edge);
-                    pq.offer(new long[]{newCost, edge.target.row, edge.target.col});
+                    pq.offer(new long[]{newCost, edge.target.row, edge.target.col, currNode.col});
                 }
             }
         }
@@ -140,7 +149,7 @@ public class GraphPathfinder {
         if (curr.row == target.row && curr.col == target.col)
             return currPath;
 
-        if (curr.row < target.row)
+        if (curr.row < target.row && currPath.size() <= target.row + 1)
             pushNeighbors(curr, currPath, visited, stack);
 
         return new ArrayList<>();

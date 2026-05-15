@@ -42,7 +42,7 @@ public class State {
         this.strategy = strategy;
         stepCounter = 0;
 
-        fibGraph = new FibonacciGraph(256);
+        fibGraph = new FibonacciGraph(512);
         pascalDAG = new PascalDAG(fibGraph, seed);
         pathfinder = new GraphPathfinder(pascalDAG);
         currentFib = fibGraph.StartPoint();
@@ -83,6 +83,12 @@ public class State {
 
         // mix Pascal value into seed
         seed = Hash.Hash(seed ^ pasVal);
+
+        // the shallow diagonal of this Pascal node is row + col
+        // its sum equals F(row + col + 1)
+        int diagonalIndex = (r + currentPascal.col + 1);
+        int diagonalFib = fibGraph.fibArray[diagonalIndex].data;
+        seed = Hash.Hash(seed ^ diagonalFib);
 
         // advance Fibonacci in sync with the mask
         long masked = seed & currentMask;

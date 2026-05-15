@@ -1,3 +1,4 @@
+import Algorithm.GraphPathfinder;
 import Algorithm.State;
 import Graphs.Node;
 import javafx.animation.FadeTransition;
@@ -31,8 +32,9 @@ public class MainGUI extends Application {
     private static final String SUCCESS      = "#3dd68c";
     private static final String WARNING      = "#f0a04a";
     private static final String REMOTE_COLOR = "#ff4444";
+    private static final String WORMHOLE_COLOR = "#ff9900";
 
-    private static final int STEP_DELAY_MS = 30;
+    private static final int STEP_DELAY_MS = 20;
 
     private static final double CANVAS_W  = 6000;
     private static final double CANVAS_H  = 4000;
@@ -48,6 +50,11 @@ public class MainGUI extends Application {
     private Canvas      canvas;
     private ScrollPane  scroll;
 
+    // strategy toggle
+    private GraphPathfinder.Strategy selectedStrategy = GraphPathfinder.Strategy.DIJKSTRA;
+    private Button dijkstraBtn;
+    private Button dfsBtn;
+
     @Override
     public void start(Stage primaryStage) {
         BorderPane root = new BorderPane();
@@ -59,7 +66,7 @@ public class MainGUI extends Application {
         Scene scene = new Scene(root, 960, 680);
         scene.setFill(Color.web(BG_DARK));
 
-        primaryStage.setTitle("Pascal · Fibonacci · Key Derivation");
+        primaryStage.setTitle("PF-GKD  ·  Key Derivation Visualizer");
         primaryStage.setMinWidth(720);
         primaryStage.setMinHeight(500);
         primaryStage.setScene(scene);
@@ -71,9 +78,6 @@ public class MainGUI extends Application {
         fadeIn.play();
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // HEADER
-    // ──────────────────────────────────────────────────────────────────────────
     private VBox buildHeader() {
         Text icon = new Text("⬡");
         icon.setStyle("-fx-fill: " + ACCENT + "; -fx-font-size: 22px;");
@@ -81,7 +85,7 @@ public class MainGUI extends Application {
         Label title = new Label("Pascal–Fibonacci Key Derivation");
         title.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 17px; -fx-font-weight: bold; -fx-text-fill: " + TEXT_PRIMARY + ";");
 
-        Label badge = new Label("v1.2");
+        Label badge = new Label("v2.0");
         badge.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 10px; -fx-text-fill: " + ACCENT + "; -fx-border-color: " + ACCENT + "; -fx-border-radius: 3; -fx-padding: 1 6 1 6;");
 
         Region spacer = new Region();
@@ -90,12 +94,13 @@ public class MainGUI extends Application {
         HBox titleRow = new HBox(12, icon, title, badge, spacer);
         titleRow.setAlignment(Pos.CENTER_LEFT);
 
+        // seed input
         Label seedLabel = new Label("SEED");
         seedLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: " + TEXT_MUTED + ";");
 
         seedInput = new TextField();
         seedInput.setPromptText("Enter seed value…");
-        seedInput.setPrefWidth(240);
+        seedInput.setPrefWidth(200);
         seedInput.setPrefHeight(36);
         seedInput.setStyle(
                 "-fx-font-family: 'Courier New'; -fx-font-size: 13px;" +
@@ -104,7 +109,20 @@ public class MainGUI extends Application {
                         "-fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 0 12;"
         );
 
-        startBtn = buildPrimaryButton("▶  Run Derivation", e -> handleEncrypt());
+        // strategy buttons
+        dijkstraBtn = buildStrategyBtn("Dijkstra", true);
+        dfsBtn      = buildStrategyBtn("DFS", false);
+
+        dijkstraBtn.setOnAction(e -> {
+            selectedStrategy = GraphPathfinder.Strategy.DIJKSTRA;
+            updateStrategyButtons();
+        });
+        dfsBtn.setOnAction(e -> {
+            selectedStrategy = GraphPathfinder.Strategy.DFS;
+            updateStrategyButtons();
+        });
+
+        startBtn = buildPrimaryButton("▶  Run", e -> handleRun());
 
         Button clearBtn = buildGhostButton("Clear", e -> {
             seedInput.clear();
@@ -116,7 +134,7 @@ public class MainGUI extends Application {
             setStatus("Canvas cleared.", TEXT_MUTED);
         });
 
-        HBox controls = new HBox(10, seedInput, startBtn, clearBtn);
+        HBox controls = new HBox(10, seedInput, dijkstraBtn, dfsBtn, startBtn, clearBtn);
         controls.setAlignment(Pos.CENTER_LEFT);
 
         VBox header = new VBox(14, titleRow, new VBox(6, seedLabel, controls));
@@ -129,9 +147,30 @@ public class MainGUI extends Application {
         return header;
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // CENTER CANVAS
-    // ──────────────────────────────────────────────────────────────────────────
+    private Button buildStrategyBtn(String text, boolean active) {
+        Button btn = new Button(text);
+        btn.setPrefHeight(36);
+        btn.setStyle(getStrategyStyle(active));
+        return btn;
+    }
+
+    private String getStrategyStyle(boolean active) {
+        if (active) {
+            return "-fx-font-family: 'Courier New'; -fx-font-size: 12px; -fx-font-weight: bold;" +
+                    "-fx-background-color: " + ACCENT + "; -fx-text-fill: white;" +
+                    "-fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 0 14; -fx-cursor: hand;";
+        }
+        return "-fx-font-family: 'Courier New'; -fx-font-size: 12px;" +
+                "-fx-background-color: " + BG_PANEL + "; -fx-text-fill: " + TEXT_MUTED + ";" +
+                "-fx-border-color: " + BORDER + "; -fx-border-radius: 6; -fx-background-radius: 6;" +
+                "-fx-padding: 0 14; -fx-cursor: hand;";
+    }
+
+    private void updateStrategyButtons() {
+        dijkstraBtn.setStyle(getStrategyStyle(selectedStrategy == GraphPathfinder.Strategy.DIJKSTRA));
+        dfsBtn.setStyle(getStrategyStyle(selectedStrategy == GraphPathfinder.Strategy.DFS));
+    }
+
     private VBox buildCenter() {
         canvas = new Canvas(CANVAS_W, CANVAS_H);
         GraphicsContext gc = canvas.getGraphicsContext2D();
@@ -149,11 +188,8 @@ public class MainGUI extends Application {
         return center;
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // STATUS BAR
-    // ──────────────────────────────────────────────────────────────────────────
     private HBox buildStatusBar() {
-        statusLabel = new Label("Ready.");
+        statusLabel = new Label("Ready — select a strategy and enter a seed.");
         statusLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 11px; -fx-text-fill: " + TEXT_MUTED + ";");
 
         progressBar = new ProgressBar(0);
@@ -164,7 +200,7 @@ public class MainGUI extends Application {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Label coords = new Label("Canvas: " + (int) CANVAS_W + " × " + (int) CANVAS_H + " px");
+        Label coords = new Label("Canvas: " + (int)CANVAS_W + " × " + (int)CANVAS_H + " px");
         coords.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 11px; -fx-text-fill: " + TEXT_MUTED + ";");
 
         HBox bar = new HBox(14, statusLabel, progressBar, spacer, coords);
@@ -178,9 +214,6 @@ public class MainGUI extends Application {
         return bar;
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // DRAWING HELPERS
-    // ──────────────────────────────────────────────────────────────────────────
     private void drawGrid(GraphicsContext gc) {
         gc.setStroke(Color.web(BORDER, 0.35));
         gc.setLineWidth(0.5);
@@ -205,11 +238,15 @@ public class MainGUI extends Application {
         }
     }
 
-    private void drawLegend(GraphicsContext gc) {
+    private void drawLegend(GraphicsContext gc, String strategy, int wormholeCount) {
         double lx = 30, ly = 60;
         gc.setFont(Font.font("Courier New", FontWeight.BOLD, 11));
 
-        // Blue — physical walk
+        // strategy label
+        gc.setFill(Color.web(ACCENT));
+        gc.fillText("Strategy: " + strategy, lx, ly - 14);
+
+        // blue — path
         gc.setStroke(Color.web(ACCENT));
         gc.setLineWidth(2.5);
         gc.setLineDashes(0);
@@ -217,11 +254,19 @@ public class MainGUI extends Application {
         gc.setFill(Color.web(SUCCESS));
         gc.fillOval(lx + 24 - RADIUS, ly - RADIUS, RADIUS * 2, RADIUS * 2);
         gc.setFill(Color.web(TEXT_PRIMARY));
-        gc.fillText("Physical walk (left / right child)", lx + 34, ly + 4);
+        gc.fillText("Path walk", lx + 34, ly + 4);
 
-        ly += 20;
+        ly += 18;
 
-        // Red — remote read
+        // orange — wormhole
+        gc.setFill(Color.web(WORMHOLE_COLOR));
+        gc.fillOval(lx, ly - RADIUS, RADIUS * 2, RADIUS * 2);
+        gc.setFill(Color.web(TEXT_PRIMARY));
+        gc.fillText("Wormhole node (" + wormholeCount + " on path)", lx + 14, ly + 4);
+
+        ly += 18;
+
+        // red — remote read
         gc.setStroke(Color.web(REMOTE_COLOR));
         gc.setLineWidth(1.2);
         gc.setLineDashes(4, 4);
@@ -233,42 +278,7 @@ public class MainGUI extends Application {
         gc.fillText("Remote read (telepathic jump)", lx + 34, ly + 4);
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // BUTTON BUILDERS
-    // ──────────────────────────────────────────────────────────────────────────
-    private Button buildPrimaryButton(String text, javafx.event.EventHandler<javafx.event.ActionEvent> handler) {
-        Button btn = new Button(text);
-        btn.setPrefHeight(36);
-        String base =
-                "-fx-font-family: 'Courier New'; -fx-font-size: 13px; -fx-font-weight: bold;" +
-                        "-fx-background-color: " + ACCENT + "; -fx-text-fill: #ffffff;" +
-                        "-fx-background-radius: 6; -fx-padding: 0 20; -fx-cursor: hand;";
-        btn.setStyle(base);
-        btn.setOnMouseEntered(e -> btn.setStyle(base.replace(ACCENT, ACCENT_HOVER)));
-        btn.setOnMouseExited(e  -> btn.setStyle(base));
-        btn.setOnAction(handler);
-        return btn;
-    }
-
-    private Button buildGhostButton(String text, javafx.event.EventHandler<javafx.event.ActionEvent> handler) {
-        Button btn = new Button(text);
-        btn.setPrefHeight(36);
-        String base =
-                "-fx-font-family: 'Courier New'; -fx-font-size: 12px;" +
-                        "-fx-background-color: transparent; -fx-text-fill: " + TEXT_MUTED + ";" +
-                        "-fx-border-color: " + BORDER + "; -fx-border-radius: 6;" +
-                        "-fx-background-radius: 6; -fx-padding: 0 16; -fx-cursor: hand;";
-        btn.setStyle(base);
-        btn.setOnMouseEntered(e -> btn.setStyle(base.replace(TEXT_MUTED, TEXT_PRIMARY).replace(BORDER, TEXT_MUTED)));
-        btn.setOnMouseExited(e  -> btn.setStyle(base));
-        btn.setOnAction(handler);
-        return btn;
-    }
-
-    // ──────────────────────────────────────────────────────────────────────────
-    // MAIN LOGIC
-    // ──────────────────────────────────────────────────────────────────────────
-    private void handleEncrypt() {
+    private void handleRun() {
         String raw = seedInput.getText().trim();
         if (raw.isEmpty()) {
             setStatus("⚠  Please enter a seed value.", WARNING);
@@ -287,9 +297,11 @@ public class MainGUI extends Application {
         startBtn.setDisable(true);
         progressBar.setProgress(0);
         progressBar.setVisible(true);
-        setStatus("Computing path…", ACCENT);
 
-        State state = new State(seed);
+        String strategyName = selectedStrategy == GraphPathfinder.Strategy.DIJKSTRA ? "Dijkstra" : "DFS";
+        setStatus("Running " + strategyName + "…", ACCENT);
+
+        State state = new State(seed, selectedStrategy);
         state.runAll();
 
         Node[] path   = state.pathHistory;
@@ -301,8 +313,15 @@ public class MainGUI extends Application {
             if (path[i + 1].row > maxRow) maxRow = path[i + 1].row;
             totalSteps++;
         }
-        final int total = totalSteps;
+        final int    total  = totalSteps;
         final double startX = CANVAS_W / 2.0;
+
+        // count wormholes on path
+        int wormholes = 0;
+        for (int i = 0; i <= totalSteps; i++) {
+            if (path[i] != null && path[i].isWormhole) wormholes++;
+        }
+        final int wormholeCount = wormholes;
 
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.setFill(Color.web(BG_DARK));
@@ -319,20 +338,23 @@ public class MainGUI extends Application {
         drawAnim.getKeyFrames().add(new KeyFrame(Duration.millis(STEP_DELAY_MS), e -> {
             int i = stepHolder[0];
 
-            // ── Blue: physical walk ──────────────────────────────────────────
             double x1 = startX + (path[i].col     - path[i].row     / 2.0) * X_SPACING;
             double y1 = START_Y +  path[i].row     * Y_SPACING;
             double x2 = startX + (path[i + 1].col - path[i + 1].row / 2.0) * X_SPACING;
             double y2 = START_Y +  path[i + 1].row * Y_SPACING;
 
+            // draw line
             gc.setStroke(Color.web(ACCENT));
             gc.setLineWidth(2.5);
             gc.setLineDashes(0);
             gc.strokeLine(x1, y1, x2, y2);
-            gc.setFill(Color.web(SUCCESS));
+
+            // dot — orange if wormhole, green if normal
+            String dotColor = path[i].isWormhole ? WORMHOLE_COLOR : SUCCESS;
+            gc.setFill(Color.web(dotColor));
             gc.fillOval(x1 - RADIUS, y1 - RADIUS, RADIUS * 2, RADIUS * 2);
 
-            // ── Red: remote read ─────────────────────────────────────────────
+            // red remote read
             if (remote[i] != null && remote[i + 1] != null) {
                 double rx1 = startX + (remote[i].col     - remote[i].row     / 2.0) * X_SPACING;
                 double ry1 = START_Y +  remote[i].row     * Y_SPACING;
@@ -355,25 +377,54 @@ public class MainGUI extends Application {
         drawAnim.setOnFinished(e -> {
             gc.setFill(Color.web(SUCCESS, 0.9));
             gc.setFont(Font.font("Courier New", FontWeight.BOLD, 14));
-            gc.fillText("Seed: " + seed + "  →  Key derivation path rendered.", 30, 38);
+            gc.fillText("Seed: " + seed + "   Strategy: " + strategyName
+                    + "   Target: row=" + state.targetNode.row + " col=" + state.targetNode.col
+                    + "   Steps: " + total, 30, 38);
 
-            drawLegend(gc);
+            drawLegend(gc, strategyName, wormholeCount);
 
             gc.setFont(Font.font("Courier New", FontWeight.NORMAL, 10));
             gc.setFill(Color.web(TEXT_MUTED));
-            gc.fillText("derived key: " + state.seed, 30, CANVAS_H - 30);
+            gc.fillText("Derived key: " + state.seed, 30, CANVAS_H - 30);
 
             progressBar.setVisible(false);
             startBtn.setDisable(false);
-            setStatus("✓ Done — seed " + seed + " | derived key: " + state.seed, SUCCESS);
+            setStatus("✓ Done  [" + strategyName + "]  seed=" + seed
+                    + "  steps=" + total
+                    + "  wormholes=" + wormholeCount
+                    + "  key=" + Long.toHexString(state.seed).toUpperCase(), SUCCESS);
         });
 
         drawAnim.play();
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // UTILITIES
-    // ──────────────────────────────────────────────────────────────────────────
+    private Button buildPrimaryButton(String text, javafx.event.EventHandler<javafx.event.ActionEvent> handler) {
+        Button btn = new Button(text);
+        btn.setPrefHeight(36);
+        String base = "-fx-font-family: 'Courier New'; -fx-font-size: 13px; -fx-font-weight: bold;" +
+                "-fx-background-color: " + ACCENT + "; -fx-text-fill: #ffffff;" +
+                "-fx-background-radius: 6; -fx-padding: 0 20; -fx-cursor: hand;";
+        btn.setStyle(base);
+        btn.setOnMouseEntered(e -> btn.setStyle(base.replace(ACCENT, ACCENT_HOVER)));
+        btn.setOnMouseExited(e  -> btn.setStyle(base));
+        btn.setOnAction(handler);
+        return btn;
+    }
+
+    private Button buildGhostButton(String text, javafx.event.EventHandler<javafx.event.ActionEvent> handler) {
+        Button btn = new Button(text);
+        btn.setPrefHeight(36);
+        String base = "-fx-font-family: 'Courier New'; -fx-font-size: 12px;" +
+                "-fx-background-color: transparent; -fx-text-fill: " + TEXT_MUTED + ";" +
+                "-fx-border-color: " + BORDER + "; -fx-border-radius: 6;" +
+                "-fx-background-radius: 6; -fx-padding: 0 16; -fx-cursor: hand;";
+        btn.setStyle(base);
+        btn.setOnMouseEntered(e -> btn.setStyle(base.replace(TEXT_MUTED, TEXT_PRIMARY).replace(BORDER, TEXT_MUTED)));
+        btn.setOnMouseExited(e  -> btn.setStyle(base));
+        btn.setOnAction(handler);
+        return btn;
+    }
+
     private void setStatus(String msg, String hex) {
         statusLabel.setText(msg);
         statusLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 11px; -fx-text-fill: " + hex + ";");

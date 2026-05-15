@@ -1,5 +1,7 @@
 package ATM;
 
+import AES.JSONBuilder;
+import AES.PF_AES;
 import Algorithm.GraphPathfinder;
 import Algorithm.State;
 import Graphs.Node;
@@ -54,6 +56,7 @@ public class ATM_GUI extends Application {
     private String  enteredPin     = "";
     private long    derivedKey     = 0L;
     private long    sessionId      = 0L;
+    private int     aesRounds      = 0;
 
     private BorderPane root;
     private final Server server = new Server();
@@ -264,11 +267,13 @@ public class ATM_GUI extends Application {
         switchScreen(screen);
 
         long contextSeed = currentAccount.pin ^ (ATM_ID * 31L) ^ (sessionId * 17L) ^ ((long)operationId * 7L);
-
-        // run Dijkstra
         State state = new State(contextSeed, GraphPathfinder.Strategy.DIJKSTRA);
         state.runAll();
         derivedKey = state.seed;
+
+        // compute AES rounds for display
+        PF_AES aes = new PF_AES(derivedKey);
+        aesRounds = aes.getRounds();
 
         Node[] path   = state.pathHistory;
         Node[] remote = state.remoteHistory;
@@ -318,7 +323,7 @@ public class ATM_GUI extends Application {
         }));
 
         anim.setOnFinished(e -> {
-            status.setText("✓  Key derived!  [Dijkstra]   Key: " + formatKey(derivedKey));
+            status.setText("✓  Key derived!  Key: " + formatKey(derivedKey) + "  |  AES rounds: " + aesRounds);
             status.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 12px; -fx-text-fill: " + SUCCESS + ";");
             new Timeline(new KeyFrame(Duration.millis(900), ev -> showMainMenu())).play();
         });
@@ -336,7 +341,7 @@ public class ATM_GUI extends Application {
         Label welcome = new Label("Welcome, " + currentAccount.name.split(" ")[0] + "!");
         welcome.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: " + TEXT_PRIMARY + ";");
 
-        Label keyLabel = new Label("Session Key:  " + formatKey(derivedKey));
+        Label keyLabel = new Label("Session Key:  " + formatKey(derivedKey) + "   |   AES Rounds: " + aesRounds);
         keyLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 11px; -fx-text-fill: " + TEXT_MUTED + "; -fx-background-color: " + BG_PANEL + "; -fx-padding: 8 14; -fx-background-radius: 6;");
 
         Label sessionLabel = new Label("Session #" + sessionId + "   |   ATM ID: " + ATM_ID + "   |   Strategy: Dijkstra");
@@ -415,31 +420,31 @@ public class ATM_GUI extends Application {
 
     // ── Transaction Handler ───────────────────────────────────────────────────
     private void handleTransaction(String type, long amount) {
-        int    operationId;
-        String plainMessage;
-
+        int operationId;
         switch (type) {
-            case "BALANCE":
-                operationId  = Server.OP_BALANCE;
-                plainMessage = "BALANCE_REQUEST|" + currentAccount.name + "|$" + currentAccount.balance;
-                break;
-            case "WITHDRAW":
-                operationId  = Server.OP_WITHDRAW;
-                plainMessage = "WITHDRAW|" + currentAccount.name + "|-$" + amount;
-                break;
-            default:
-                operationId  = Server.OP_DEPOSIT;
-                plainMessage = "DEPOSIT|" + currentAccount.name + "|+$" + amount;
-                break;
+            case "BALANCE":  operationId = Server.OP_BALANCE;  break;
+            case "WITHDRAW": operationId = Server.OP_WITHDRAW; break;
+            default:         operationId = Server.OP_DEPOSIT;  break;
         }
 
+        // build JSON message
+        String plainJson = JSONBuilder.build(
+                "name",   currentAccount.name,
+                "op",     type,
+                "amount", String.valueOf(amount)
+        );
+
+        // derive key and encrypt with PF_AES
         long contextSeed = currentAccount.pin ^ (ATM_ID * 31L) ^ (sessionId * 17L) ^ ((long)operationId * 7L);
         State state = new State(contextSeed, GraphPathfinder.Strategy.DIJKSTRA);
         state.runAll();
         derivedKey = state.seed;
 
-        String encryptedMessage = encryptMsg(plainMessage, derivedKey);
+        PF_AES aes = new PF_AES(derivedKey);
+        aesRounds = aes.getRounds();
+        String encryptedMessage = aes.encrypt(plainJson);
 
+        // send to server
         Server.ServerResponse resp = server.process(
                 currentAccount.name, encryptedMessage,
                 sessionId, operationId, currentAccount.balance
@@ -447,21 +452,20 @@ public class ATM_GUI extends Application {
 
         if (resp.approved) currentAccount.balance = resp.newBalance;
 
-        String decryptedResponse = resp.approved
-                ? server.decryptMsg(resp.encryptedResponse, derivedKey)
-                : resp.encryptedResponse;
+        // decrypt server response
+        String decryptedResponse = aes.decrypt(resp.encryptedResponse);
 
         String valueColor = resp.approved ? SUCCESS : DANGER;
         String mainValue  = resp.approved ? "✓ APPROVED" : "✗ DECLINED";
 
         switchScreen(buildResultScreen(
-                type, plainMessage, encryptedMessage,
+                plainJson, encryptedMessage,
                 resp, decryptedResponse, mainValue, valueColor
         ));
     }
 
     // ── Result Screen ─────────────────────────────────────────────────────────
-    private VBox buildResultScreen(String type, String plain, String encMsg,
+    private VBox buildResultScreen(String plain, String encMsg,
                                    Server.ServerResponse resp, String decResp,
                                    String mainValue, String valueColor) {
         VBox screen = new VBox(14);
@@ -481,19 +485,19 @@ public class ATM_GUI extends Application {
         logBox.setStyle("-fx-background-color: " + BG_PANEL + "; -fx-border-color: " + BORDER + "; -fx-border-radius: 8; -fx-background-radius: 8;");
 
         logBox.getChildren().addAll(
-                logTitle("🔐  Transaction Encryption Log"),
+                logTitle("🔐  Transaction Encryption Log  [PF-AES  rounds=" + aesRounds + "]"),
                 logSeparator(),
-                logRow("ATM",    "Session Key",       formatKey(derivedKey),            TEXT_MUTED),
-                logRow("ATM",    "Plain message",      plain,                             TEXT_MUTED),
-                logRow("ATM",    "Encrypted  →",       encMsg,                            WARNING),
+                logRow("ATM",    "Session Key",      formatKey(derivedKey),           TEXT_MUTED),
+                logRow("ATM",    "JSON message",      plain,                            TEXT_MUTED),
+                logRow("ATM",    "AES encrypted →",   encMsg,                           WARNING),
                 logSeparator(),
-                logRow("SERVER", "Derived same key",   formatKey(resp.serverDerivedKey),
+                logRow("SERVER", "Derived same key",  formatKey(resp.serverDerivedKey),
                         resp.serverDerivedKey == derivedKey ? SUCCESS : DANGER),
-                logRow("SERVER", "Decrypted  ✓",       resp.decryptedMessage,             SUCCESS),
-                logRow("SERVER", "Response plain",     decResp,                           TEXT_MUTED),
-                logRow("SERVER", "Response enc →",     resp.encryptedResponse,            WARNING),
+                logRow("SERVER", "AES decrypted ✓",   resp.decryptedMessage,            SUCCESS),
+                logRow("SERVER", "Response JSON",      decResp,                          TEXT_MUTED),
+                logRow("SERVER", "Response enc →",     resp.encryptedResponse,           WARNING),
                 logSeparator(),
-                logRow("ATM",    "Response dec  ✓",    decResp,                           SUCCESS)
+                logRow("ATM",    "Response dec ✓",     decResp,                          SUCCESS)
         );
 
         ScrollPane logScroll = new ScrollPane(logBox);
@@ -541,17 +545,6 @@ public class ATM_GUI extends Application {
     }
 
     // ── Utilities ─────────────────────────────────────────────────────────────
-    private String encryptMsg(String message, long key) {
-        byte[]        keyBytes = Long.toHexString(key).getBytes();
-        byte[]        msgBytes = message.getBytes();
-        StringBuilder sb       = new StringBuilder();
-        for (int i = 0; i < msgBytes.length; i++) {
-            sb.append(String.format("%02X", (msgBytes[i] ^ keyBytes[i % keyBytes.length]) & 0xFF));
-            if ((i + 1) % 4 == 0 && i + 1 < msgBytes.length) sb.append(" ");
-        }
-        return sb.toString();
-    }
-
     private String formatKey(long key) {
         String hex = Long.toHexString(key).toUpperCase();
         StringBuilder sb = new StringBuilder();

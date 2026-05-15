@@ -1,5 +1,7 @@
 package ATM;
 
+import AES.JSONBuilder;
+import AES.PF_AES;
 import Algorithm.GraphPathfinder;
 import Algorithm.State;
 
@@ -17,77 +19,82 @@ public class Server {
                                   long sessionId, int operationId,
                                   long currentBalance) {
         long pin = findPin(cardName);
-        if (pin == -1) return new ServerResponse(false, "CARD_NOT_FOUND", 0L, 0L, "");
+        if (pin == -1) return new ServerResponse(false, "CARD_NOT_FOUND", 0L, 0L, "", 0);
 
         long contextSeed = pin ^ (ATM_ID * 31L) ^ (sessionId * 17L) ^ ((long)operationId * 7L);
 
-        // server derives the same key independently
+        // server independently derives the same key
         State state = new State(contextSeed, GraphPathfinder.Strategy.DIJKSTRA);
         state.runAll();
         long derivedKey = state.seed;
 
-        String decrypted = decryptMsg(encryptedMessage, derivedKey);
+        // decrypt using PF_AES
+        PF_AES aes = new PF_AES(derivedKey);
+        String decrypted = aes.decrypt(encryptedMessage);
 
-        boolean approved     = false;
-        long    newBalance   = currentBalance;
-        String  responseText = "";
+        // parse JSON fields
+        String op     = JSONBuilder.getValue(decrypted, "op");
+        String amount = JSONBuilder.getValue(decrypted, "amount");
 
-        if (decrypted.startsWith("BALANCE_REQUEST")) {
-            approved     = true;
-            newBalance   = currentBalance;
-            responseText = "BALANCE_OK|" + cardName + "|$" + currentBalance;
+        boolean approved   = false;
+        long    newBalance = currentBalance;
+        String  response   = "";
 
-        } else if (decrypted.startsWith("WITHDRAW")) {
-            long amount = parseAmount(decrypted);
-            if (amount > 0 && amount <= currentBalance) {
-                approved     = true;
-                newBalance   = currentBalance - amount;
-                responseText = "WITHDRAW_OK|" + cardName + "|-$" + amount + "|NEW_BAL:$" + newBalance;
+        if (op.equals("BALANCE")) {
+            approved   = true;
+            newBalance = currentBalance;
+            response   = JSONBuilder.build(
+                    "status", "OK",
+                    "op", "BALANCE",
+                    "balance", String.valueOf(currentBalance)
+            );
+
+        } else if (op.equals("WITHDRAW")) {
+            long amt = parseLong(amount);
+            if (amt > 0 && amt <= currentBalance) {
+                approved   = true;
+                newBalance = currentBalance - amt;
+                response   = JSONBuilder.build(
+                        "status", "OK",
+                        "op", "WITHDRAW",
+                        "balance", String.valueOf(newBalance)
+                );
             } else {
-                responseText = "WITHDRAW_DECLINED|INSUFFICIENT_FUNDS";
+                response = JSONBuilder.build(
+                        "status", "DECLINED",
+                        "op", "WITHDRAW",
+                        "reason", "INSUFFICIENT_FUNDS"
+                );
             }
 
-        } else if (decrypted.startsWith("DEPOSIT")) {
-            long amount = parseAmount(decrypted);
-            if (amount > 0) {
-                approved     = true;
-                newBalance   = currentBalance + amount;
-                responseText = "DEPOSIT_OK|" + cardName + "|+$" + amount + "|NEW_BAL:$" + newBalance;
+        } else if (op.equals("DEPOSIT")) {
+            long amt = parseLong(amount);
+            if (amt > 0) {
+                approved   = true;
+                newBalance = currentBalance + amt;
+                response   = JSONBuilder.build(
+                        "status", "OK",
+                        "op", "DEPOSIT",
+                        "balance", String.valueOf(newBalance)
+                );
             } else {
-                responseText = "DEPOSIT_DECLINED|INVALID_AMOUNT";
+                response = JSONBuilder.build(
+                        "status", "DECLINED",
+                        "op", "DEPOSIT",
+                        "reason", "INVALID_AMOUNT"
+                );
             }
         } else {
-            responseText = "ERROR|UNRECOGNIZED_MESSAGE";
+            response = JSONBuilder.build("status", "ERROR", "reason", "UNKNOWN_OP");
         }
 
-        String encryptedResponse = encryptMsg(responseText, derivedKey);
-        return new ServerResponse(approved, decrypted, derivedKey, newBalance, encryptedResponse);
+        String encryptedResponse = aes.encrypt(response);
+        return new ServerResponse(approved, decrypted, derivedKey, newBalance, encryptedResponse, aes.getRounds());
     }
 
-    public String decryptMsg(String encrypted, long derivedKey) {
-        String clean    = encrypted.replace(" ", "");
-        byte[] keyBytes = Long.toHexString(derivedKey).getBytes();
-        byte[] encBytes = new byte[clean.length() / 2];
-
-        for (int i = 0; i < encBytes.length; i++)
-            encBytes[i] = (byte) Integer.parseInt(clean.substring(i * 2, i * 2 + 2), 16);
-
-        byte[] decBytes = new byte[encBytes.length];
-        for (int i = 0; i < encBytes.length; i++)
-            decBytes[i] = (byte)(encBytes[i] ^ keyBytes[i % keyBytes.length]);
-
-        return new String(decBytes);
-    }
-
-    public String encryptMsg(String message, long derivedKey) {
-        byte[]        keyBytes = Long.toHexString(derivedKey).getBytes();
-        byte[]        msgBytes = message.getBytes();
-        StringBuilder sb       = new StringBuilder();
-        for (int i = 0; i < msgBytes.length; i++) {
-            sb.append(String.format("%02X", (msgBytes[i] ^ keyBytes[i % keyBytes.length]) & 0xFF));
-            if ((i + 1) % 4 == 0 && i + 1 < msgBytes.length) sb.append(" ");
-        }
-        return sb.toString();
+    private long parseLong(String s) {
+        try { return Long.parseLong(s); }
+        catch (NumberFormatException e) { return -1L; }
     }
 
     private long findPin(String cardName) {
@@ -96,29 +103,22 @@ public class Server {
         return -1L;
     }
 
-    private long parseAmount(String msg) {
-        try {
-            String[] parts = msg.split("\\|");
-            return Long.parseLong(parts[2].replace("-$", "").replace("+$", ""));
-        } catch (Exception e) {
-            return -1L;
-        }
-    }
-
     public static class ServerResponse {
         public boolean approved;
         public String  decryptedMessage;
         public long    serverDerivedKey;
         public long    newBalance;
         public String  encryptedResponse;
+        public int     aesRounds;
 
         public ServerResponse(boolean approved, String decrypted,
-                              long key, long newBalance, String encResp) {
+                              long key, long newBalance, String encResp, int rounds) {
             this.approved          = approved;
             this.decryptedMessage  = decrypted;
             this.serverDerivedKey  = key;
             this.newBalance        = newBalance;
             this.encryptedResponse = encResp;
+            this.aesRounds         = rounds;
         }
     }
 }
