@@ -113,42 +113,54 @@ public class PF_AES {
         return keys;
     }
 
-    // ── Encryption ────────────────────────────────────────────────────────────
+    // Encryption
 
     public String encrypt(String message) {
-        byte[][] block = stringToBlock(message);
-        addRoundKey(block, roundKeys[0]);
+        // pad message to multiple of 16 bytes
+        int padded = ((message.length() / 16) + 1) * 16;
+        StringBuilder sb = new StringBuilder(message);
+        while (sb.length() < padded) sb.append(' ');
+        String paddedMsg = sb.toString();
 
-        for (int i = 1; i < rounds; i++) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < paddedMsg.length(); i += 16) {
+            String chunk = paddedMsg.substring(i, i + 16);
+            byte[][] block = stringToBlock(chunk);
+            addRoundKey(block, roundKeys[0]);
+            for (int r = 1; r < rounds; r++) {
+                byteSub(block);
+                shiftRows(block);
+                mixColumns(block);
+                addRoundKey(block, roundKeys[r]);
+            }
             byteSub(block);
             shiftRows(block);
-            mixColumns(block);
-            addRoundKey(block, roundKeys[i]);
+            addRoundKey(block, roundKeys[rounds]);
+            result.append(blockToHex(block));
         }
-
-        byteSub(block);
-        shiftRows(block);
-        addRoundKey(block, roundKeys[rounds]);
-        return blockToHex(block);
+        return result.toString();
     }
-
-    // ── Decryption ────────────────────────────────────────────────────────────
-
+    // decryption
     public String decrypt(String hexMessage) {
-        byte[][] block = hexToBlock(hexMessage);
-        addRoundKey(block, roundKeys[rounds]);
-
-        for (int i = rounds - 1; i > 0; i--) {
+        StringBuilder result = new StringBuilder();
+        // each block = 32 hex chars (16 bytes)
+        for (int i = 0; i < hexMessage.length(); i += 32) {
+            String chunk = hexMessage.substring(i, Math.min(i + 32, hexMessage.length()));
+            if (chunk.length() < 32) break;
+            byte[][] block = hexToBlock(chunk);
+            addRoundKey(block, roundKeys[rounds]);
+            for (int r = rounds - 1; r > 0; r--) {
+                iShiftRows(block);
+                iByteSub(block);
+                addRoundKey(block, roundKeys[r]);
+                iMixColumns(block);
+            }
             iShiftRows(block);
             iByteSub(block);
-            addRoundKey(block, roundKeys[i]);
-            iMixColumns(block);
+            addRoundKey(block, roundKeys[0]);
+            result.append(blockToString(block));
         }
-
-        iShiftRows(block);
-        iByteSub(block);
-        addRoundKey(block, roundKeys[0]);
-        return blockToString(block);
+        return result.toString().trim();
     }
 
     // ── AES operations ────────────────────────────────────────────────────────
