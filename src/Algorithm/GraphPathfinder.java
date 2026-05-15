@@ -149,7 +149,7 @@ public class GraphPathfinder {
         if (curr.row == target.row && curr.col == target.col)
             return currPath;
 
-        if (curr.row < target.row && currPath.size() <= target.row + 1)
+        if (curr.row < target.row)
             pushNeighbors(curr, currPath, visited, stack);
 
         return new ArrayList<>();
@@ -158,11 +158,11 @@ public class GraphPathfinder {
     private void pushNeighbors(Node curr, List<Node> currPath,
                                Set<String> visited,
                                Deque<DFSFrame> stack) {
-        // push right first so left gets popped first (LIFO)
         List<Edge> neighbors = dag.getNeighbors(curr);
         for (int i = neighbors.size() - 1; i >= 0; i--) {
             Edge edge = neighbors.get(i);
-            if (!visited.contains(nodeKey(edge.target))) {
+            // skip backwards/same-level edges in DFS — only go deeper
+            if (edge.target.row > curr.row && !visited.contains(nodeKey(edge.target))) {
                 List<Node> newPath = new ArrayList<>(currPath);
                 newPath.add(edge.target);
                 stack.push(new DFSFrame(edge.target, newPath));
