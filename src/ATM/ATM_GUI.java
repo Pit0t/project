@@ -50,8 +50,8 @@ public class ATM_GUI extends Application {
     private static final long ATM_ID = Server.ATM_ID;
 
     static class Account {
-        String name; long pin; long balance;
-        Account(String n, long p, long b) { name = n; pin = p; balance = b; }
+        String name; long pin; long balance; int failedAttempts;
+        Account(String n, long p, long b) { name = n; pin = p; balance = b; failedAttempts = 0; }
     }
 
     private final Account[] accounts = {
@@ -161,7 +161,10 @@ public class ATM_GUI extends Application {
         btn.setStyle(base);
         btn.setOnMouseEntered(e -> btn.setStyle(base.replace(BORDER, ACCENT)));
         btn.setOnMouseExited(e  -> btn.setStyle(base));
-        btn.setOnAction(e -> { currentAccount = acc; sessionId++; showPinEntry(null); });
+        btn.setOnAction(e -> {
+            if (acc.failedAttempts >= 3) { currentAccount = acc; showPinEntry("This card is blocked."); return; }
+            currentAccount = acc; sessionId++; showPinEntry(null);
+        });
         return btn;
     }
 
@@ -242,9 +245,14 @@ public class ATM_GUI extends Application {
         if (enteredPin.length() < 4) { showPinEntry("Please enter all 4 digits."); return; }
         long entered = Long.parseLong(enteredPin);
         if (entered == currentAccount.pin) {
+            currentAccount.failedAttempts = 0;
             showLoadingScreen(Server.OP_BALANCE);
         } else {
-            showPinEntry("Incorrect PIN. Please try again.");
+            currentAccount.failedAttempts++;
+            if (currentAccount.failedAttempts >= 3)
+                showCardSelect();
+            else
+                showPinEntry("Incorrect PIN. " + (3 - currentAccount.failedAttempts) + " attempts remaining.");
         }
     }
 

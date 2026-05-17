@@ -3,6 +3,7 @@ package ATM;
 import AES.JSONBuilder;
 import AES.PF_AES;
 import Algorithm.GraphPathfinder;
+import Algorithm.Hash;
 import Algorithm.State;
 
 public class Server {
@@ -21,7 +22,10 @@ public class Server {
         long pin = findPin(cardName);
         if (pin == -1) return new ServerResponse(false, "CARD_NOT_FOUND", 0L, 0L, "", 0);
 
-        long contextSeed = pin ^ (ATM_ID * 31L) ^ (sessionId * 17L) ^ ((long)operationId * 7L);
+        long contextSeed = Hash.Hash(pin);
+        contextSeed = Hash.Hash(contextSeed ^ ATM_ID);
+        contextSeed = Hash.Hash(contextSeed ^ sessionId);
+        contextSeed = Hash.Hash(contextSeed ^ operationId);
 
         // server independently derives the same key
         State state = new State(contextSeed, GraphPathfinder.Strategy.DIJKSTRA);
