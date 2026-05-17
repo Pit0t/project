@@ -292,8 +292,8 @@ public class MainGUI extends Application {
         setStatus("⚡ Running Avalanche Demo  [seed=" + seedA + "  vs  seed=" + seedB + "]…", WARNING);
 
         // run both states
-        State stateA = new State(seedA, GraphPathfinder.Strategy.DIJKSTRA);
-        State stateB = new State(seedB, GraphPathfinder.Strategy.DIJKSTRA);
+        State stateA = new State(seedA, selectedStrategy);
+        State stateB = new State(seedB, selectedStrategy);
         stateA.runAll();
         stateB.runAll();
 
