@@ -31,13 +31,20 @@ public class ATM_GUI extends Application {
     private static final String DANGER       = "#ff4444";
     private static final String WARNING      = "#f0a04a";
 
-    private static final double CANVAS_W   = 780;
-    private static final double CANVAS_H   = 440;
-    private static final double START_Y    = 30;
-    private static final double X_SPACING  = 12;
-    private static final double Y_SPACING  = 10;
-    private static final double RADIUS     = 2.5;
-    private static final int    STEP_DELAY = 12;
+    private static final double CANVAS_W   = 3000;
+    private static final double CANVAS_H   = 2500;
+    private static final double START_Y    = 60;
+    private static final double X_SPACING  = 8;
+    private static final double Y_SPACING  = 6;
+    private static final double RADIUS     = 3;
+    private static final int    STEP_DELAY = 20;
+    private static final String WORMHOLE_COLOR = "#ff9900";
+    private static final String REMOTE_COLOR   = "#ff4444";
+
+    // ── Change this to switch ATM pathfinding strategy ────────────────────────
+    private static final GraphPathfinder.Strategy STRATEGY = GraphPathfinder.Strategy.DIJKSTRA;
+    // private static final GraphPathfinder.Strategy STRATEGY = GraphPathfinder.Strategy.DFS;
+
 
     private static final long ATM_ID = Server.ATM_ID;
 
@@ -242,12 +249,14 @@ public class ATM_GUI extends Application {
 
     // ── Pascal Loading Screen ─────────────────────────────────────────────────
     private void showLoadingScreen(int operationId) {
+        String strategyName = STRATEGY == GraphPathfinder.Strategy.DIJKSTRA ? "Dijkstra" : "DFS";
+
         VBox screen = new VBox(14);
         screen.setAlignment(Pos.CENTER);
         screen.setPadding(new Insets(20));
         screen.setStyle("-fx-background-color: " + BG_DARK + ";");
 
-        Label status = new Label("Deriving session key via Dijkstra…  [ATM_ID=" + ATM_ID + "  SESSION=" + sessionId + "]");
+        Label status = new Label("Deriving session key via " + strategyName + "…  [ATM_ID=" + ATM_ID + "  SESSION=" + sessionId + "]");
         status.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 12px; -fx-text-fill: " + ACCENT + ";");
 
         ProgressBar pb = new ProgressBar(0);
@@ -260,18 +269,18 @@ public class ATM_GUI extends Application {
         drawGrid(gc);
 
         ScrollPane sp = new ScrollPane(canvas);
-        sp.setPannable(true); sp.setPrefHeight(CANVAS_H);
+        sp.setPannable(true);
         sp.setStyle("-fx-background-color: " + BG_DARK + "; -fx-background: " + BG_DARK + ";");
+        VBox.setVgrow(sp, Priority.ALWAYS);
 
         screen.getChildren().addAll(status, pb, sp);
         switchScreen(screen);
 
         long contextSeed = currentAccount.pin ^ (ATM_ID * 31L) ^ (sessionId * 17L) ^ ((long)operationId * 7L);
-        State state = new State(contextSeed, GraphPathfinder.Strategy.DIJKSTRA);
+        State state = new State(contextSeed, STRATEGY);
         state.runAll();
         derivedKey = state.seed;
 
-        // compute AES rounds for display
         PF_AES aes = new PF_AES(derivedKey);
         aesRounds = aes.getRounds();
 
@@ -284,8 +293,13 @@ public class ATM_GUI extends Application {
             if (path[i + 1].row > maxRow) maxRow = path[i + 1].row;
             cnt++;
         }
-        final int    total  = cnt;
+        final int total = cnt;
         final double startX = CANVAS_W / 2.0;
+
+        int wormholes = 0;
+        for (int i = 0; i <= total; i++)
+            if (path[i] != null && path[i].isWormhole) wormholes++;
+        final int wormholeCount = wormholes;
 
         drawPascalTriangle(gc, startX, maxRow);
         sp.setHvalue(0.5); sp.setVvalue(0.0);
@@ -301,9 +315,11 @@ public class ATM_GUI extends Application {
             double y2 = START_Y +  path[i + 1].row * Y_SPACING;
 
             gc.setStroke(Color.web(ACCENT));
-            gc.setLineWidth(2.0); gc.setLineDashes(0);
+            gc.setLineWidth(2.5); gc.setLineDashes(0);
             gc.strokeLine(x1, y1, x2, y2);
-            gc.setFill(Color.web(SUCCESS));
+
+            String dotColor = path[i].isWormhole ? WORMHOLE_COLOR : SUCCESS;
+            gc.setFill(Color.web(dotColor));
             gc.fillOval(x1 - RADIUS, y1 - RADIUS, RADIUS * 2, RADIUS * 2);
 
             if (remote[i] != null && remote[i + 1] != null) {
@@ -311,10 +327,11 @@ public class ATM_GUI extends Application {
                 double ry1 = START_Y +  remote[i].row     * Y_SPACING;
                 double rx2 = startX + (remote[i + 1].col - remote[i + 1].row / 2.0) * X_SPACING;
                 double ry2 = START_Y +  remote[i + 1].row * Y_SPACING;
-                gc.setStroke(Color.web(DANGER)); gc.setLineWidth(1.0); gc.setLineDashes(3, 3);
+                gc.setStroke(Color.web(REMOTE_COLOR));
+                gc.setLineWidth(1.2); gc.setLineDashes(4, 4);
                 gc.strokeLine(rx1, ry1, rx2, ry2);
                 gc.setLineDashes(0);
-                gc.setFill(Color.web(DANGER, 0.8));
+                gc.setFill(Color.web(REMOTE_COLOR, 0.8));
                 gc.fillOval(rx1 - 2, ry1 - 2, 4, 4);
             }
 
@@ -323,8 +340,21 @@ public class ATM_GUI extends Application {
         }));
 
         anim.setOnFinished(e -> {
-            status.setText("✓  Key derived!  Key: " + formatKey(derivedKey) + "  |  AES rounds: " + aesRounds);
+            gc.setFill(Color.web(SUCCESS, 0.9));
+            gc.setFont(Font.font("Courier New", FontWeight.BOLD, 14));
+            gc.fillText("Seed: " + contextSeed + "   Strategy: " + strategyName
+                    + "   Target: row=" + state.targetNode.row + " col=" + state.targetNode.col
+                    + "   Steps: " + total, 30, 38);
+            drawLegend(gc, strategyName, wormholeCount, 30, 60);
+            gc.setFont(Font.font("Courier New", FontWeight.NORMAL, 10));
+            gc.setFill(Color.web(TEXT_MUTED));
+            gc.fillText("Derived key: " + Long.toHexString(derivedKey).toUpperCase(), 30, CANVAS_H - 30);
+
+            status.setText("✓  Key derived!  [" + strategyName + "]  steps=" + total
+                    + "  wormholes=" + wormholeCount + "  Key: " + formatKey(derivedKey)
+                    + "  |  AES rounds: " + aesRounds);
             status.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 12px; -fx-text-fill: " + SUCCESS + ";");
+            pb.setVisible(false);
             new Timeline(new KeyFrame(Duration.millis(900), ev -> showMainMenu())).play();
         });
 
@@ -344,13 +374,9 @@ public class ATM_GUI extends Application {
         Label keyLabel = new Label("Session Key:  " + formatKey(derivedKey) + "   |   AES Rounds: " + aesRounds);
         keyLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 11px; -fx-text-fill: " + TEXT_MUTED + "; -fx-background-color: " + BG_PANEL + "; -fx-padding: 8 14; -fx-background-radius: 6;");
 
-        Label sessionLabel = new Label("Session #" + sessionId + "   |   ATM ID: " + ATM_ID + "   |   Strategy: Dijkstra");
+        String strategyName = STRATEGY == GraphPathfinder.Strategy.DIJKSTRA ? "Dijkstra" : "DFS";
+        Label sessionLabel = new Label("Session #" + sessionId + "   |   ATM ID: " + ATM_ID + "   |   Strategy: " + strategyName);
         sessionLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 11px; -fx-text-fill: " + TEXT_MUTED + ";");
-
-        Label balTitle = new Label("Current Balance");
-        balTitle.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 12px; -fx-text-fill: " + TEXT_MUTED + ";");
-        Label balLabel = new Label("$" + String.format("%,d", currentAccount.balance));
-        balLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: " + SUCCESS + ";");
 
         Separator sep = new Separator(); sep.setMaxWidth(380);
 
@@ -370,7 +396,7 @@ public class ATM_GUI extends Application {
         VBox btns = new VBox(10, checkBtn, withdrawBtn, depositBtn);
         btns.setAlignment(Pos.CENTER); btns.setMaxWidth(360);
 
-        screen.getChildren().addAll(welcome, keyLabel, sessionLabel, balTitle, balLabel, sep, menuTitle, btns, ejectBtn);
+        screen.getChildren().addAll(welcome, keyLabel, sessionLabel, sep, menuTitle, btns, ejectBtn);
         switchScreen(screen);
     }
 
@@ -436,7 +462,7 @@ public class ATM_GUI extends Application {
 
         // derive key and encrypt with PF_AES
         long contextSeed = currentAccount.pin ^ (ATM_ID * 31L) ^ (sessionId * 17L) ^ ((long)operationId * 7L);
-        State state = new State(contextSeed, GraphPathfinder.Strategy.DIJKSTRA);
+        State state = new State(contextSeed, STRATEGY);
         state.runAll();
         derivedKey = state.seed;
 
@@ -456,18 +482,18 @@ public class ATM_GUI extends Application {
         String decryptedResponse = aes.decrypt(resp.encryptedResponse);
 
         String valueColor = resp.approved ? SUCCESS : DANGER;
-        String mainValue  = resp.approved ? "✓ APPROVED" : "✗ DECLINED";
+        String mainValue  = type.equals("BALANCE") ? "" : (resp.approved ? "APPROVED" : "✗ DECLINED");
 
         switchScreen(buildResultScreen(
                 plainJson, encryptedMessage,
-                resp, decryptedResponse, mainValue, valueColor
+                resp, decryptedResponse, mainValue, valueColor, type.equals("BALANCE")
         ));
     }
 
     // ── Result Screen ─────────────────────────────────────────────────────────
     private VBox buildResultScreen(String plain, String encMsg,
                                    Server.ServerResponse resp, String decResp,
-                                   String mainValue, String valueColor) {
+                                   String mainValue, String valueColor, boolean isBalance) {
         VBox screen = new VBox(14);
         screen.setAlignment(Pos.CENTER);
         screen.setPadding(new Insets(30, 60, 30, 60));
@@ -476,8 +502,13 @@ public class ATM_GUI extends Application {
         Label titleLabel = new Label(mainValue);
         titleLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: " + valueColor + ";");
 
-        Label balLabel = new Label("New Balance: $" + String.format("%,d", currentAccount.balance));
-        balLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 15px; -fx-text-fill: " + TEXT_PRIMARY + ";");
+        String balColor = currentAccount.balance >= 0 ? SUCCESS : DANGER;
+        String balText  = isBalance
+                ? "$" + String.format("%,d", currentAccount.balance)
+                : "Balance: $" + String.format("%,d", currentAccount.balance);
+        String balSize  = isBalance ? "40px" : "15px";
+        Label balLabel = new Label(balText);
+        balLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: " + balSize + "; -fx-font-weight: bold; -fx-text-fill: " + balColor + ";");
 
         VBox logBox = new VBox(10);
         logBox.setPadding(new Insets(16, 20, 16, 20));
@@ -562,15 +593,15 @@ public class ATM_GUI extends Application {
     }
 
     private void drawGrid(GraphicsContext gc) {
-        gc.setStroke(Color.web(BORDER, 0.3));
+        gc.setStroke(Color.web(BORDER, 0.35));
         gc.setLineWidth(0.5);
-        for (int x = 0; x < CANVAS_W; x += 60) gc.strokeLine(x, 0, x, CANVAS_H);
-        for (int y = 0; y < CANVAS_H; y += 60) gc.strokeLine(0, y, CANVAS_W, y);
+        for (int x = 0; x < CANVAS_W; x += 80) gc.strokeLine(x, 0, x, CANVAS_H);
+        for (int y = 0; y < CANVAS_H; y += 80) gc.strokeLine(0, y, CANVAS_W, y);
     }
 
     private void drawPascalTriangle(GraphicsContext gc, double startX, int maxRow) {
-        gc.setStroke(Color.web(TEXT_MUTED, 0.4));
-        gc.setLineWidth(0.6);
+        gc.setStroke(Color.web(TEXT_MUTED, 0.55));
+        gc.setLineWidth(0.8);
         for (int row = 0; row < maxRow; row++) {
             for (int col = 0; col <= row; col++) {
                 double px  = startX + (col     - row       / 2.0) * X_SPACING;
@@ -583,6 +614,34 @@ public class ATM_GUI extends Application {
                 gc.strokeLine(px, py, rcx, rcy);
             }
         }
+    }
+
+    private void drawLegend(GraphicsContext gc, String strategy, int wormholeCount, double lx, double ly) {
+        gc.setFont(Font.font("Courier New", FontWeight.BOLD, 11));
+        gc.setFill(Color.web(ACCENT));
+        gc.fillText("Strategy: " + strategy, lx, ly - 14);
+
+        gc.setStroke(Color.web(ACCENT)); gc.setLineWidth(2.5); gc.setLineDashes(0);
+        gc.strokeLine(lx, ly, lx + 24, ly);
+        gc.setFill(Color.web(SUCCESS));
+        gc.fillOval(lx + 24 - RADIUS, ly - RADIUS, RADIUS * 2, RADIUS * 2);
+        gc.setFill(Color.web(TEXT_PRIMARY));
+        gc.fillText("Path walk", lx + 34, ly + 4);
+
+        ly += 18;
+        gc.setFill(Color.web(WORMHOLE_COLOR));
+        gc.fillOval(lx, ly - RADIUS, RADIUS * 2, RADIUS * 2);
+        gc.setFill(Color.web(TEXT_PRIMARY));
+        gc.fillText("Wormhole (" + wormholeCount + ")", lx + 14, ly + 4);
+
+        ly += 18;
+        gc.setStroke(Color.web(REMOTE_COLOR)); gc.setLineWidth(1.2); gc.setLineDashes(4, 4);
+        gc.strokeLine(lx, ly, lx + 24, ly);
+        gc.setLineDashes(0);
+        gc.setFill(Color.web(REMOTE_COLOR, 0.8));
+        gc.fillOval(lx + 24 - 2, ly - 2, 4, 4);
+        gc.setFill(Color.web(TEXT_PRIMARY));
+        gc.fillText("Remote read", lx + 34, ly + 4);
     }
 
     private Button buildPrimaryButton(String text) {
