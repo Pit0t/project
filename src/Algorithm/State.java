@@ -70,6 +70,7 @@ public class State {
 
     public void runAll() {
         for (int i = 0; i < totalSteps; i++) nextStep();
+        seed = Hash.Hash(seed ^ totalSteps);
     }
 
     public void nextStep() {
@@ -82,7 +83,10 @@ public class State {
         int pasVal = currentPascal.data;
 
         // mix Pascal value into seed
+        if (currentPascal.isWormhole)
+            seed = ~seed;
         seed = Hash.Hash(seed ^ pasVal);
+
 
         // the shallow diagonal of this Pascal node is row + col
         // its sum equals F(row + col + 1)

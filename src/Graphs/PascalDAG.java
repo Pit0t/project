@@ -66,9 +66,9 @@ public class PascalDAG {
 
         // wormhole adds an EXTRA backwards jump edge (doesn't replace children)
         if (node.isWormhole) {
-            long jumpHash = Hash.Hash(seed ^ node.row ^ node.col);
+            long jumpHash = Hash.Hash(seed ^ node.row ^ node.col ^ node.data);
             int jumpRow = (int)(Math.abs(jumpHash) % (node.row + 1));
-            int jumpCol = (int)(Math.abs(Hash.Hash(jumpHash)) % (jumpRow + 1));
+            int jumpCol = (int)(Math.abs(Hash.Hash(jumpHash ^ node.data)) % (jumpRow + 1));
             Node jumpTarget = getNode(jumpRow, jumpCol);
             if (jumpTarget != null)
                 edges.add(new Edge(node, jumpTarget, nextFibWeight()));

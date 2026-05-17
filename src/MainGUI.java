@@ -258,8 +258,8 @@ public class MainGUI extends Application {
             gc.setFill(Color.web(SUCCESS, 0.9));
             gc.setFont(Font.font("Courier New", FontWeight.BOLD, 14));
             gc.fillText("Seed: " + seed + "   Strategy: " + strategyName
-                    + "   Target: row=" + state.targetNode.row + " col=" + state.targetNode.col
-                    + "   Steps: " + total, 30, 38);
+                    + "   Steps: " + total
+                    + "   Target: row=" + state.targetNode.row + " col=" + state.targetNode.col, 30, 38);
             drawLegend(gc, strategyName, wormholeCount, 30, 60);
             gc.setFont(Font.font("Courier New", FontWeight.NORMAL, 10));
             gc.setFill(Color.web(TEXT_MUTED));
@@ -269,6 +269,7 @@ public class MainGUI extends Application {
             avalancheBtn.setDisable(false);
             setStatus("✓ Done  [" + strategyName + "]  seed=" + seed
                     + "  steps=" + total + "  wormholes=" + wormholeCount
+                    + "  target=row:" + state.targetNode.row + " col:" + state.targetNode.col
                     + "  key=" + Long.toHexString(state.seed).toUpperCase(), SUCCESS);
         });
 
@@ -397,9 +398,10 @@ public class MainGUI extends Application {
                     + "  (" + (bitDiff * 100 / 64) + "% of bits changed by flipping 1 bit!)", SUCCESS);
 
             // update labels
-            labelA.setText("Seed: " + seedA + "  →  Key: " + keyA);
+            labelA.setText("Seed: " + seedA + "  →  Key: " + keyA
+                    + "   |   Target: row=" + stateA.targetNode.row + " col=" + stateA.targetNode.col);
             labelB.setText("Seed: " + seedB + "  (1 bit diff)  →  Key: " + keyB
-                    + "   [" + bitDiff + "/64 bits changed]");
+                    + "   |   Target: row=" + stateB.targetNode.row + " col=" + stateB.targetNode.col);
         });
 
         anim.play();

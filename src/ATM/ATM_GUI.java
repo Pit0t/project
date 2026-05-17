@@ -4,6 +4,7 @@ import AES.JSONBuilder;
 import AES.PF_AES;
 import Algorithm.GraphPathfinder;
 import Algorithm.State;
+import Algorithm.Hash;
 import Graphs.Node;
 import javafx.animation.*;
 import javafx.application.Application;
@@ -276,7 +277,11 @@ public class ATM_GUI extends Application {
         screen.getChildren().addAll(status, pb, sp);
         switchScreen(screen);
 
-        long contextSeed = currentAccount.pin ^ (ATM_ID * 31L) ^ (sessionId * 17L) ^ ((long)operationId * 7L);
+        long contextSeed = Hash.Hash(currentAccount.pin);
+        contextSeed = Hash.Hash(contextSeed ^ ATM_ID);
+        contextSeed = Hash.Hash(contextSeed ^ sessionId);
+        contextSeed = Hash.Hash(contextSeed ^ operationId);
+
         State state = new State(contextSeed, STRATEGY);
         state.runAll();
         derivedKey = state.seed;
@@ -339,10 +344,11 @@ public class ATM_GUI extends Application {
             stepHolder[0]++;
         }));
 
+        long finalContextSeed = contextSeed;
         anim.setOnFinished(e -> {
             gc.setFill(Color.web(SUCCESS, 0.9));
             gc.setFont(Font.font("Courier New", FontWeight.BOLD, 14));
-            gc.fillText("Seed: " + contextSeed + "   Strategy: " + strategyName
+            gc.fillText("Seed: " + finalContextSeed + "   Strategy: " + strategyName
                     + "   Target: row=" + state.targetNode.row + " col=" + state.targetNode.col
                     + "   Steps: " + total, 30, 38);
             drawLegend(gc, strategyName, wormholeCount, 30, 60);
@@ -461,7 +467,11 @@ public class ATM_GUI extends Application {
         );
 
         // derive key and encrypt with PF_AES
-        long contextSeed = currentAccount.pin ^ (ATM_ID * 31L) ^ (sessionId * 17L) ^ ((long)operationId * 7L);
+        long contextSeed = Hash.Hash(currentAccount.pin);
+        contextSeed = Hash.Hash(contextSeed ^ ATM_ID);
+        contextSeed = Hash.Hash(contextSeed ^ sessionId);
+        contextSeed = Hash.Hash(contextSeed ^ operationId);
+
         State state = new State(contextSeed, STRATEGY);
         state.runAll();
         derivedKey = state.seed;
