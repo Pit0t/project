@@ -26,11 +26,11 @@ public class GraphPathfinder {
     public enum Strategy { DIJKSTRA, DFS }
 
     private final PascalDAG dag;
+    private final long seed;
 
-    private static final long ZIGZAG_PENALTY = 450_000_000L;
-
-    public GraphPathfinder(PascalDAG dag) {
+    public GraphPathfinder(PascalDAG dag, long seed) {
         this.dag = dag;
+        this.seed = seed;
     }
 
     public List<Node> findPath(Node target, Strategy strategy) {
@@ -39,6 +39,10 @@ public class GraphPathfinder {
         return dfs(target);
     }
 
+    private long computeZigzagPenalty() {
+        // range: 200M to 700M, fully seed-dependent
+        return 200_000_000L + (Math.abs(Hash.Hash(seed ^ 0xDEADBEEFL)) % 500_000_000L);
+    }
     // -------------------------------------------------------------------
     // Dijkstra - minimum cost path using a priority queue
     // Cost of each edge = its Fibonacci-based weight
@@ -97,7 +101,7 @@ public class GraphPathfinder {
                         ((edge.target.col == currNode.col && prevCol == currNode.col) ||
                                 (edge.target.col == currNode.col + 1 && prevCol == currNode.col - 1));
 
-                long penalty = sameDirection ? ZIGZAG_PENALTY : 0L;
+                long penalty = sameDirection ? computeZigzagPenalty() : 0L;
                 long newCost = currCost + edge.weight + penalty;
                 if (newCost < dist.getOrDefault(nKey, Long.MAX_VALUE)) {
                     dist.put(nKey, newCost);

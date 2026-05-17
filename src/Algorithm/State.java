@@ -44,7 +44,7 @@ public class State {
 
         fibGraph = new FibonacciGraph(512);
         pascalDAG = new PascalDAG(fibGraph, seed);
-        pathfinder = new GraphPathfinder(pascalDAG);
+        pathfinder = new GraphPathfinder(pascalDAG, seed);
         currentFib = fibGraph.StartPoint();
 
         targetNode = null;

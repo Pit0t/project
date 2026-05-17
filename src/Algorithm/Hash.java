@@ -17,7 +17,7 @@ public class Hash {
         for (int i = 1; i <= 64; i++) {
             int shiftAmount = (int)(Math.abs(seed) & 63);
             if (shiftAmount == 0)
-                shiftAmount = 13;
+                shiftAmount = (int)((Math.abs(seed ^ PRIME_3) % 60) + 3);
             seed = Long.rotateLeft(seed, shiftAmount);
             seed ^= (E_BITS * i);
             long temp = seed >>> (i % 17 + 1);

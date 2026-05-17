@@ -40,7 +40,9 @@ public class PascalDAG {
 
         Node node = new Node(computePascalValue(row, col), row, col);
         long wormholeCheck = Hash.Hash(seed ^ (long)row ^ (long)col);
-        if (Math.abs(wormholeCheck) % 100 < 10) {
+        long dynamicPrecent = 5 + (Math.abs(Hash.Hash(seed)) % 16);
+
+        if (Math.abs(wormholeCheck) % 100 < dynamicPrecent) {
             node.isWormhole = true;
         }
         nodeCache.put(k, node);
@@ -56,8 +58,9 @@ public class PascalDAG {
         // always add normal children
         Node left  = getNode(nextRow, node.col);
         Node right = getNode(nextRow, node.col + 1);
-        long wLeft  = Math.abs(Hash.Hash(seed ^ nextRow ^ node.col)) % 1_000_000_007;
-        long wRight = Math.abs(Hash.Hash(seed ^ nextRow ^ (node.col + 1))) % 1_000_000_007;
+        long fibWeight = nextFibWeight();
+        long wLeft  = Math.abs(Hash.Hash(seed ^ nextRow ^ node.col) ^ fibWeight) % 1000000007;
+        long wRight = Math.abs(Hash.Hash(seed ^ nextRow ^ (node.col + 1)) ^ fibWeight) % 1000000007;
         if (left  != null) edges.add(new Edge(node, left,  wLeft));
         if (right != null) edges.add(new Edge(node, right, wRight));
 
