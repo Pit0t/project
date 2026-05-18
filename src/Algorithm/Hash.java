@@ -2,6 +2,13 @@ package Algorithm;
 
 public class Hash {
     public static long Hash(long seed) {
+        int[] primes = {
+                17,19,23,29,31,37,41,43,47,53,
+                59,61,67,71,73,79,83,89,97,101,
+                103,107,109,113,127,131,137,139,
+                149,151, 157,163,167,173,179,181,
+                191,193,197,199};
+
         long GOLDEN_RATIO = 0x9E3779B97F4A7C15L;
         long PI_BITS = 0x3243F6A8885A308DL;
         long E_BITS = 0x2A14701F6DE7C26EL;
