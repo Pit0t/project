@@ -1,0 +1,260 @@
+<mxGraphModel>
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+
+    <!-- LAYER 1 - GRAPHS (Blue) -->
+
+    <!-- NumberGraph Interface -->
+    <mxCell id="2" value="&amp;lt;&amp;lt;Interface&amp;gt;&amp;gt; NumberGraph" style="text;html=1;strokeColor=#1a6496;fillColor=#d9edf7;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+      <mxGeometry x="80" y="700" width="200" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="3" value="" style="text;html=1;strokeColor=#1a6496;fillColor=#d9edf7;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="80" y="740" width="200" height="20" as="geometry"/>
+    </mxCell>
+    <mxCell id="4" value="+ StartPoint() : Node&#xa;+ NextPoint(chooser : int, node : Node) : Node" style="text;html=1;strokeColor=#1a6496;fillColor=#d9edf7;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="80" y="760" width="200" height="40" as="geometry"/>
+    </mxCell>
+
+    <!-- FibonacciGraph -->
+    <mxCell id="5" value="FibonacciGraph" style="text;html=1;strokeColor=#1a6496;fillColor=#d9edf7;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+      <mxGeometry x="340" y="700" width="200" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="6" value="+ fibArray : Node[]" style="text;html=1;strokeColor=#1a6496;fillColor=#d9edf7;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="340" y="740" width="200" height="20" as="geometry"/>
+    </mxCell>
+    <mxCell id="7" value="+ FibonacciGraph(size : int)&#xa;+ StartPoint() : Node&#xa;+ NextPoint(chooser : int, node : Node) : Node" style="text;html=1;strokeColor=#1a6496;fillColor=#d9edf7;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="340" y="760" width="200" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- Node -->
+    <mxCell id="8" value="Node" style="text;html=1;strokeColor=#1a6496;fillColor=#d9edf7;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+      <mxGeometry x="600" y="700" width="200" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="9" value="+ data : int&#xa;+ row : int&#xa;+ col : int&#xa;+ index : int&#xa;+ isWormhole : boolean" style="text;html=1;strokeColor=#1a6496;fillColor=#d9edf7;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="600" y="740" width="200" height="70" as="geometry"/>
+    </mxCell>
+    <mxCell id="10" value="+ Node(data : int, row : int, col : int)&#xa;+ Node(d : int, i : int)" style="text;html=1;strokeColor=#1a6496;fillColor=#d9edf7;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="600" y="810" width="200" height="40" as="geometry"/>
+    </mxCell>
+
+    <!-- Edge -->
+    <mxCell id="11" value="Edge" style="text;html=1;strokeColor=#1a6496;fillColor=#d9edf7;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+      <mxGeometry x="860" y="700" width="200" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="12" value="+ source : Node&#xa;+ target : Node&#xa;+ weight : long" style="text;html=1;strokeColor=#1a6496;fillColor=#d9edf7;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="860" y="740" width="200" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="13" value="+ Edge(source : Node, target : Node, weight : long)" style="text;html=1;strokeColor=#1a6496;fillColor=#d9edf7;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="860" y="790" width="200" height="30" as="geometry"/>
+    </mxCell>
+
+    <!-- PascalDAG -->
+    <mxCell id="14" value="PascalDAG" style="text;html=1;strokeColor=#1a6496;fillColor=#d9edf7;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+      <mxGeometry x="1120" y="700" width="240" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="15" value="- nodeCache : Map(String, Node)&#xa;- fibGraph : FibonacciGraph&#xa;- seed : long" style="text;html=1;strokeColor=#1a6496;fillColor=#d9edf7;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="1120" y="740" width="240" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="16" value="+ PascalDAG(fibGraph : FibonacciGraph, seed : long)&#xa;+ getNode(row : int, col : int) : Node&#xa;+ getNeighbors(node : Node) : List(Edge)&#xa;+ computePascalValue(n : int, k : int) : int&#xa;+ getTargetNode(seed : long, row : int) : Node" style="text;html=1;strokeColor=#1a6496;fillColor=#d9edf7;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="1120" y="790" width="240" height="70" as="geometry"/>
+    </mxCell>
+
+    <!-- LAYER 2 - ALGORITHM (Green) -->
+
+    <!-- Hash -->
+    <mxCell id="17" value="Hash" style="text;html=1;strokeColor=#2d6a4f;fillColor=#d8f3dc;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+      <mxGeometry x="80" y="480" width="200" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="18" value="" style="text;html=1;strokeColor=#2d6a4f;fillColor=#d8f3dc;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="80" y="520" width="200" height="20" as="geometry"/>
+    </mxCell>
+    <mxCell id="19" value="+ Hash(seed : long) : long" style="text;html=1;strokeColor=#2d6a4f;fillColor=#d8f3dc;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="80" y="540" width="200" height="25" as="geometry"/>
+    </mxCell>
+
+    <!-- GraphPathfinder -->
+    <mxCell id="20" value="GraphPathfinder" style="text;html=1;strokeColor=#2d6a4f;fillColor=#d8f3dc;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+      <mxGeometry x="340" y="460" width="240" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="21" value="- dag : PascalDAG&#xa;- seed : long&#xa;enum Strategy: DIJKSTRA, DFS" style="text;html=1;strokeColor=#2d6a4f;fillColor=#d8f3dc;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="340" y="500" width="240" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="22" value="+ findPath(target : Node, strategy : Strategy) : List(Node)&#xa;- dijkstra(target : Node) : List(Node)&#xa;- dfs(target : Node) : List(Node)" style="text;html=1;strokeColor=#2d6a4f;fillColor=#d8f3dc;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="340" y="550" width="240" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- State -->
+    <mxCell id="23" value="State" style="text;html=1;strokeColor=#2d6a4f;fillColor=#d8f3dc;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+      <mxGeometry x="650" y="460" width="240" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="24" value="+ fibGraph : FibonacciGraph&#xa;+ pascalDAG : PascalDAG&#xa;- pathfinder : GraphPathfinder&#xa;+ seed : long&#xa;+ currentMask : long&#xa;+ totalSteps : int&#xa;+ targetNode : Node&#xa;- goldenPath : List(Node)&#xa;+ pathHistory : Node[]&#xa;+ remoteHistory : Node[]" style="text;html=1;strokeColor=#2d6a4f;fillColor=#d8f3dc;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="650" y="500" width="240" height="130" as="geometry"/>
+    </mxCell>
+    <mxCell id="25" value="+ State(seed : long, strategy : Strategy)&#xa;+ nextStep() : void&#xa;+ runAll() : void" style="text;html=1;strokeColor=#2d6a4f;fillColor=#d8f3dc;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="650" y="630" width="240" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- LAYER 3 - AES (Yellow) -->
+
+    <!-- PF_AES -->
+    <mxCell id="26" value="PF_AES" style="text;html=1;strokeColor=#856404;fillColor=#fff3cd;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+      <mxGeometry x="80" y="240" width="220" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="27" value="- Sbox : int[]&#xa;- RSbox : int[]&#xa;- roundKeys : byte[][][]&#xa;- rounds : int" style="text;html=1;strokeColor=#856404;fillColor=#fff3cd;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="80" y="280" width="220" height="60" as="geometry"/>
+    </mxCell>
+    <mxCell id="28" value="+ PF_AES(derivedKey : long)&#xa;+ encrypt(plainText : String) : String&#xa;+ decrypt(cipherText : String) : String&#xa;+ getRounds() : int" style="text;html=1;strokeColor=#856404;fillColor=#fff3cd;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="80" y="340" width="220" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- JSONBuilder -->
+    <mxCell id="29" value="JSONBuilder" style="text;html=1;strokeColor=#856404;fillColor=#fff3cd;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+      <mxGeometry x="360" y="240" width="220" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="30" value="" style="text;html=1;strokeColor=#856404;fillColor=#fff3cd;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="360" y="280" width="220" height="20" as="geometry"/>
+    </mxCell>
+    <mxCell id="31" value="+ build(pairs : String...) : String&#xa;+ getValue(json : String, key : String) : String&#xa;+ hasKey(json : String, key : String) : boolean" style="text;html=1;strokeColor=#856404;fillColor=#fff3cd;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="360" y="300" width="220" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- LAYER 4 - APP / UI (Purple) -->
+
+    <!-- MainGUI -->
+    <mxCell id="32" value="MainGUI" style="text;html=1;strokeColor=#5b2c8d;fillColor=#e8d5f5;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+      <mxGeometry x="80" y="40" width="220" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="33" value="- state : State&#xa;- selectedStrategy : Strategy" style="text;html=1;strokeColor=#5b2c8d;fillColor=#e8d5f5;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="80" y="80" width="220" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="34" value="+ start(stage : Stage) : void&#xa;- handleRun() : void&#xa;- handleAvalanche() : void" style="text;html=1;strokeColor=#5b2c8d;fillColor=#e8d5f5;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="80" y="115" width="220" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- ATM_GUI -->
+    <mxCell id="35" value="ATM_GUI" style="text;html=1;strokeColor=#5b2c8d;fillColor=#e8d5f5;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+      <mxGeometry x="360" y="40" width="220" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="36" value="- currentAccount : Account&#xa;- derivedKey : long&#xa;- server : Server" style="text;html=1;strokeColor=#5b2c8d;fillColor=#e8d5f5;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="360" y="80" width="220" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="37" value="+ start(stage : Stage) : void&#xa;- showLoadingScreen(opId : int) : void&#xa;- handleTransaction(type : String, amount : long) : void" style="text;html=1;strokeColor=#5b2c8d;fillColor=#e8d5f5;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="360" y="130" width="220" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- Server -->
+    <mxCell id="38" value="Server" style="text;html=1;strokeColor=#5b2c8d;fillColor=#e8d5f5;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+      <mxGeometry x="640" y="40" width="220" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="39" value="- CARD_NAMES : String[]&#xa;- CARD_PINS : long[]&#xa;+ ATM_ID : long" style="text;html=1;strokeColor=#5b2c8d;fillColor=#e8d5f5;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="640" y="80" width="220" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="40" value="+ process(cardName : String, encMsg : String, sessionId : long, opId : int, balance : long) : ServerResponse" style="text;html=1;strokeColor=#5b2c8d;fillColor=#e8d5f5;align=left;verticalAlign=top;spacingLeft=4;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="640" y="130" width="220" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- ARROWS -->
+
+    <!-- FibonacciGraph implements NumberGraph -->
+    <mxCell id="41" style="edgeStyle=orthogonalEdgeStyle;dashed=1;endArrow=block;endFill=0;" edge="1" source="5" target="2" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- PascalDAG aggregates FibonacciGraph -->
+    <mxCell id="42" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;startArrow=diamond;startFill=0;" edge="1" source="14" target="5" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- PascalDAG uses Node -->
+    <mxCell id="43" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;" edge="1" source="14" target="8" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- PascalDAG uses Edge -->
+    <mxCell id="44" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;" edge="1" source="14" target="11" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- Edge uses Node -->
+    <mxCell id="45" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;" edge="1" source="11" target="8" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- GraphPathfinder aggregates PascalDAG -->
+    <mxCell id="46" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;startArrow=diamond;startFill=0;" edge="1" source="20" target="14" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- State aggregates FibonacciGraph -->
+    <mxCell id="47" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;startArrow=diamond;startFill=0;" edge="1" source="23" target="5" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- State aggregates PascalDAG -->
+    <mxCell id="48" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;startArrow=diamond;startFill=0;" edge="1" source="23" target="14" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- State aggregates GraphPathfinder -->
+    <mxCell id="49" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;startArrow=diamond;startFill=0;" edge="1" source="23" target="20" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- PF_AES uses Hash -->
+    <mxCell id="50" style="edgeStyle=orthogonalEdgeStyle;dashed=1;endArrow=open;endFill=0;" edge="1" source="26" target="17" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- State uses Hash -->
+    <mxCell id="51" style="edgeStyle=orthogonalEdgeStyle;dashed=1;endArrow=open;endFill=0;" edge="1" source="23" target="17" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- MainGUI uses State -->
+    <mxCell id="52" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;" edge="1" source="32" target="23" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- ATM_GUI uses State -->
+    <mxCell id="53" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;" edge="1" source="35" target="23" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- ATM_GUI uses PF_AES -->
+    <mxCell id="54" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;" edge="1" source="35" target="26" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- ATM_GUI uses JSONBuilder -->
+    <mxCell id="55" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;" edge="1" source="35" target="29" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- ATM_GUI uses Server -->
+    <mxCell id="56" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;" edge="1" source="35" target="38" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- Server uses State -->
+    <mxCell id="57" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;" edge="1" source="38" target="23" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- Server uses PF_AES -->
+    <mxCell id="58" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;" edge="1" source="38" target="26" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- Server uses JSONBuilder -->
+    <mxCell id="59" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;" edge="1" source="38" target="29" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- MainGUI uses PF_AES -->
+    <mxCell id="60" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;" edge="1" source="32" target="26" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+  </root>
+</mxGraphModel>
