@@ -366,7 +366,7 @@ public class ATM_GUI extends Application {
 
             status.setText("✓  Key derived!  [" + strategyName + "]  steps=" + total
                     + "  wormholes=" + wormholeCount + "  Key: " + formatKey(derivedKey)
-                    + "  |  AES rounds: " + aesRounds);
+                    + "  |  PF_AES rounds: " + aesRounds);
             status.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 12px; -fx-text-fill: " + SUCCESS + ";");
             pb.setVisible(false);
             new Timeline(new KeyFrame(Duration.millis(900), ev -> showMainMenu())).play();
@@ -385,7 +385,7 @@ public class ATM_GUI extends Application {
         Label welcome = new Label("Welcome, " + currentAccount.name.split(" ")[0] + "!");
         welcome.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: " + TEXT_PRIMARY + ";");
 
-        Label keyLabel = new Label("Session Key:  " + formatKey(derivedKey) + "   |   AES Rounds: " + aesRounds);
+        Label keyLabel = new Label("Session Key:  " + formatKey(derivedKey) + "   |   PF_ Rounds: " + aesRounds);
         keyLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 11px; -fx-text-fill: " + TEXT_MUTED + "; -fx-background-color: " + BG_PANEL + "; -fx-padding: 8 14; -fx-background-radius: 6;");
 
         String strategyName = STRATEGY == GraphPathfinder.Strategy.DIJKSTRA ? "Dijkstra" : "DFS";
@@ -538,11 +538,11 @@ public class ATM_GUI extends Application {
                 logSeparator(),
                 logRow("ATM",    "Session Key",      formatKey(derivedKey),           TEXT_MUTED),
                 logRow("ATM",    "JSON message",      plain,                            TEXT_MUTED),
-                logRow("ATM",    "AES encrypted →",   encMsg,                           WARNING),
+                logRow("ATM",    "PF_AES encrypted →",   encMsg,                           WARNING),
                 logSeparator(),
                 logRow("SERVER", "Derived same key",  formatKey(resp.serverDerivedKey),
                         resp.serverDerivedKey == derivedKey ? SUCCESS : DANGER),
-                logRow("SERVER", "AES decrypted ✓",   resp.decryptedMessage,            SUCCESS),
+                logRow("SERVER", "PF_AES decrypted ✓",   resp.decryptedMessage,            SUCCESS),
                 logRow("SERVER", "Response JSON",      decResp,                          TEXT_MUTED),
                 logRow("SERVER", "Response enc →",     resp.encryptedResponse,           WARNING),
                 logSeparator(),
