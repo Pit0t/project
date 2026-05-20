@@ -70,8 +70,10 @@ public class PascalDAG {
             int jumpRow = (int)(Math.abs(jumpHash) % (node.row + 1));
             int jumpCol = (int)(Math.abs(Hash.Hash(jumpHash ^ node.data)) % (jumpRow + 1));
             Node jumpTarget = getNode(jumpRow, jumpCol);
+            int fibIndex = (int)(Math.abs(Hash.Hash(seed ^ node.row ^ node.col)) % fibGraph.fibArray.length);
+            long wormholeWeight = fibGraph.fibArray[fibIndex].data;
             if (jumpTarget != null)
-                edges.add(new Edge(node, jumpTarget, nextFibWeight()));
+                edges.add(new Edge(node, jumpTarget, wormholeWeight));
         }
 
         return edges;
