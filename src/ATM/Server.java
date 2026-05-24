@@ -8,6 +8,7 @@ import Algorithm.State;
 
 public class Server {
 
+    private static final long[]   CARD_IDS   = { 217389790L, 218886547L, 306227365L };
     private static final String[] CARD_NAMES = { "Alice Cohen", "Bob Levi", "Dana Mizrahi" };
     private static final long[]   CARD_PINS  = { 1234L, 4321L, 9999L };
 
@@ -16,13 +17,15 @@ public class Server {
     public static final int  OP_WITHDRAW = 2;
     public static final int  OP_DEPOSIT  = 3;
 
-    public ServerResponse process(String cardName, String encryptedMessage,
+    public ServerResponse process(long cardId, String encryptedMessage,
                                   long sessionId, int operationId,
                                   long currentBalance) {
-        long pin = findPin(cardName);
-        if (pin == -1) return new ServerResponse(false, "CARD_NOT_FOUND", 0L, 0L, "", 0);
+        long[] entry = findEntry(cardId);
+        if (entry == null) return new ServerResponse(false, "CARD_NOT_FOUND", 0L, 0L, "", 0);
+        long pin = entry[0];
+        long id  = entry[1];
 
-        long contextSeed = Hash.Hash(pin);
+        long contextSeed = Hash.Hash(pin ^ id);
         contextSeed = Hash.Hash(contextSeed ^ ATM_ID);
         contextSeed = Hash.Hash(contextSeed ^ sessionId);
         contextSeed = Hash.Hash(contextSeed ^ operationId);
@@ -101,10 +104,16 @@ public class Server {
         catch (NumberFormatException e) { return -1L; }
     }
 
-    private long findPin(String cardName) {
-        for (int i = 0; i < CARD_NAMES.length; i++)
-            if (CARD_NAMES[i].equals(cardName)) return CARD_PINS[i];
-        return -1L;
+    private long[] findEntry(long cardId) {
+        for (int i = 0; i < CARD_IDS.length; i++)
+            if (CARD_IDS[i] == cardId) return new long[]{ CARD_PINS[i], CARD_IDS[i] };
+        return null;
+    }
+
+    public static boolean idExists(long cardId) {
+        for (long id : CARD_IDS)
+            if (id == cardId) return true;
+        return false;
     }
 
     public static class ServerResponse {

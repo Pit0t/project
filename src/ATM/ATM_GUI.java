@@ -50,14 +50,14 @@ public class ATM_GUI extends Application {
     private static final long ATM_ID = Server.ATM_ID;
 
     static class Account {
-        String name; long pin; long balance; int failedAttempts;
-        Account(String n, long p, long b) { name = n; pin = p; balance = b; failedAttempts = 0; }
+        String name; long idNumber; long pin; long balance; int failedAttempts;
+        Account(String n, long id, long p, long b) { name = n; idNumber = id; pin = p; balance = b; failedAttempts = 0; }
     }
 
     private final Account[] accounts = {
-            new Account("Alice Cohen",  1234L,  5000L),
-            new Account("Bob Levi",     4321L, 12500L),
-            new Account("Dana Mizrahi", 9999L,   750L)
+            new Account("Alice Cohen",  217389790L, 1234L,  5000L),
+            new Account("Bob Levi",     218886547L, 4321L, 12500L),
+            new Account("Dana Mizrahi", 306227365L, 9999L,   750L)
     };
 
     private Account currentAccount = null;
@@ -74,7 +74,7 @@ public class ATM_GUI extends Application {
         root = new BorderPane();
         root.setStyle("-fx-background-color: " + BG_DARK + ";");
         root.setTop(buildHeader());
-        showCardSelect();
+        showIdEntry(null);
 
         Scene scene = new Scene(root, 920, 720);
         scene.setFill(Color.web(BG_DARK));
@@ -108,64 +108,52 @@ public class ATM_GUI extends Application {
         return header;
     }
 
-    // ── Card Select ───────────────────────────────────────────────────────────
-    private void showCardSelect() {
+    // ── ID Entry ──────────────────────────────────────────────────────────────
+    private void showIdEntry(String errorMsg) {
         currentAccount = null;
         enteredPin     = "";
         derivedKey     = 0L;
 
-        VBox screen = new VBox(28);
+        VBox screen = new VBox(24);
         screen.setAlignment(Pos.CENTER);
         screen.setPadding(new Insets(50, 80, 50, 80));
         screen.setStyle("-fx-background-color: " + BG_DARK + ";");
 
         Label title = new Label("Welcome");
         title.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: " + TEXT_PRIMARY + ";");
-
-        Label sub = new Label("Select your card to continue");
+        Label sub = new Label("Enter your ID number to continue");
         sub.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 13px; -fx-text-fill: " + TEXT_MUTED + ";");
 
-        VBox cards = new VBox(12);
-        cards.setAlignment(Pos.CENTER);
-        cards.setMaxWidth(420);
-        for (Account acc : accounts) cards.getChildren().add(buildCardButton(acc));
+        TextField idField = new TextField();
+        idField.setPromptText("ID Number");
+        idField.setPrefWidth(240); idField.setPrefHeight(48);
+        idField.setAlignment(Pos.CENTER);
+        idField.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 20px; -fx-background-color: " + BG_PANEL + "; -fx-text-fill: " + TEXT_PRIMARY + "; -fx-border-color: " + BORDER + "; -fx-border-radius: 8; -fx-background-radius: 8;");
 
-        screen.getChildren().addAll(title, sub, cards);
-        switchScreen(screen);
-    }
+        Label errLabel = new Label(errorMsg != null ? errorMsg : "");
+        errLabel.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 12px; -fx-text-fill: " + DANGER + ";");
 
-    private Button buildCardButton(Account acc) {
-        String initials = "" + acc.name.charAt(0) + acc.name.split(" ")[1].charAt(0);
-
-        Label avatar = new Label(initials);
-        avatar.setMinSize(44, 44); avatar.setMaxSize(44, 44);
-        avatar.setAlignment(Pos.CENTER);
-        avatar.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: white; -fx-background-color: " + ACCENT + "; -fx-background-radius: 22;");
-
-        Label name    = new Label(acc.name);
-        name.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: " + TEXT_PRIMARY + ";");
-        Label cardNum = new Label("Card  •••• •••• " + String.format("%04d", acc.pin % 10000));
-        cardNum.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 11px; -fx-text-fill: " + TEXT_MUTED + ";");
-
-        VBox info    = new VBox(3, name, cardNum);
-        HBox content = new HBox(16, avatar, info);
-        content.setAlignment(Pos.CENTER_LEFT);
-
-        Button btn = new Button();
-        btn.setGraphic(content);
-        btn.setMaxWidth(Double.MAX_VALUE);
-        btn.setPrefHeight(68);
-        btn.setPadding(new Insets(0, 20, 0, 20));
-
-        String base = "-fx-background-color: " + BG_PANEL + "; -fx-border-color: " + BORDER + "; -fx-border-radius: 10; -fx-background-radius: 10; -fx-cursor: hand;";
-        btn.setStyle(base);
-        btn.setOnMouseEntered(e -> btn.setStyle(base.replace(BORDER, ACCENT)));
-        btn.setOnMouseExited(e  -> btn.setStyle(base));
-        btn.setOnAction(e -> {
-            if (acc.failedAttempts >= 3) { currentAccount = acc; showPinEntry("This card is blocked."); return; }
-            currentAccount = acc; sessionId++; showPinEntry(null);
+        Button confirmBtn = buildPrimaryButton("Continue");
+        confirmBtn.setOnAction(e -> {
+            String input = idField.getText().trim();
+            if (input.isEmpty()) { errLabel.setText("Please enter your ID number."); return; }
+            try {
+                long enteredId = Long.parseLong(input);
+                Account found = null;
+                for (Account acc : accounts)
+                    if (acc.idNumber == enteredId) { found = acc; break; }
+                if (found == null) { errLabel.setText("ID not found."); return; }
+                if (found.failedAttempts >= 3) { currentAccount = found; showPinEntry("This card is blocked."); return; }
+                currentAccount = found;
+                sessionId++;
+                showPinEntry(null);
+            } catch (NumberFormatException ex) {
+                errLabel.setText("Invalid ID. Numbers only.");
+            }
         });
-        return btn;
+
+        screen.getChildren().addAll(title, sub, idField, errLabel, confirmBtn);
+        switchScreen(screen);
     }
 
     // ── PIN Entry ─────────────────────────────────────────────────────────────
@@ -226,7 +214,7 @@ public class ATM_GUI extends Application {
             }
         }
 
-        Button backBtn = buildGhostButton("← Back", e -> showCardSelect());
+        Button backBtn = buildGhostButton("← Back", e -> showIdEntry(null));
         screen.getChildren().addAll(cardLabel, sessionLabel, title, dotsBox, errLabel, keypad, backBtn);
         switchScreen(screen);
     }
@@ -250,7 +238,7 @@ public class ATM_GUI extends Application {
         } else {
             currentAccount.failedAttempts++;
             if (currentAccount.failedAttempts >= 3)
-                showCardSelect();
+                showIdEntry(null);
             else
                 showPinEntry("Incorrect PIN. " + (3 - currentAccount.failedAttempts) + " attempts remaining.");
         }
@@ -285,7 +273,7 @@ public class ATM_GUI extends Application {
         screen.getChildren().addAll(status, pb, sp);
         switchScreen(screen);
 
-        long contextSeed = Hash.Hash(currentAccount.pin);
+        long contextSeed = Hash.Hash(currentAccount.pin ^ currentAccount.idNumber);
         contextSeed = Hash.Hash(contextSeed ^ ATM_ID);
         contextSeed = Hash.Hash(contextSeed ^ sessionId);
         contextSeed = Hash.Hash(contextSeed ^ operationId);
@@ -405,7 +393,7 @@ public class ATM_GUI extends Application {
         withdrawBtn.setOnAction(e -> showAmountScreen("Withdraw"));
         depositBtn.setOnAction(e  -> showAmountScreen("Deposit"));
 
-        Button ejectBtn = buildGhostButton("⏏   Eject Card", e -> showCardSelect());
+        Button ejectBtn = buildGhostButton("⏏   Eject Card", e -> showIdEntry(null));
 
         VBox btns = new VBox(10, checkBtn, withdrawBtn, depositBtn);
         btns.setAlignment(Pos.CENTER); btns.setMaxWidth(360);
@@ -475,7 +463,7 @@ public class ATM_GUI extends Application {
         );
 
         // derive key and encrypt with PF_AES
-        long contextSeed = Hash.Hash(currentAccount.pin);
+        long contextSeed = Hash.Hash(currentAccount.pin ^ currentAccount.idNumber);
         contextSeed = Hash.Hash(contextSeed ^ ATM_ID);
         contextSeed = Hash.Hash(contextSeed ^ sessionId);
         contextSeed = Hash.Hash(contextSeed ^ operationId);
@@ -490,7 +478,7 @@ public class ATM_GUI extends Application {
 
         // send to server
         Server.ServerResponse resp = server.process(
-                currentAccount.name, encryptedMessage,
+                currentAccount.idNumber, encryptedMessage,
                 sessionId, operationId, currentAccount.balance
         );
 
